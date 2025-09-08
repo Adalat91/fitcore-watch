@@ -27,6 +27,7 @@ struct ContentView: View {
             workoutManager.requestHealthKitPermissions()
         }
     }
+
 }
 
 struct HomeView: View {
@@ -35,9 +36,12 @@ struct HomeView: View {
     @State private var showingTemplates = false
     @State private var showingMyTemplates = false
     @State private var isSyncing = false
+    @State private var navigateToSetup = false
+    @State private var navigateToActiveWorkout = false
+    @StateObject private var homeTimerManager = TimerManager()
     
     var body: some View {
-        NavigationView {
+        NavigationStack {
             VStack(spacing: 0) {
                 // Header Section
                 VStack(spacing: 16) {
@@ -76,13 +80,57 @@ struct HomeView: View {
                             .frame(width: 20, height: 20)
                     }
                     
-                    // Start Button
-                    Button("Start") {
-                        showingQuickStart = true
+                    // Start or Active Workout (show active if a workout exists OR a pre-workout session is in progress)
+                    if let activeWorkout = workoutManager.currentWorkout ?? (workoutManager.sessionStartDate != nil ? Workout(name: "", exercises: []) : nil) {
+                        Button(action: {
+                            if workoutManager.currentWorkout != nil {
+                                navigateToActiveWorkout = true
+                            } else {
+                                navigateToSetup = true
+                            }
+                        }) {
+                            HStack {
+                                VStack(alignment: .leading, spacing: 2) {
+                                    Text("Active Workout")
+                                        .font(.subheadline)
+                                        .lineLimit(1)
+                                        .minimumScaleFactor(0.75)
+                                    if !activeWorkout.name.isEmpty {
+                                        Text(activeWorkout.name)
+                                            .font(.caption2)
+                                            .foregroundColor(.secondary)
+                                            .lineLimit(1)
+                                            .minimumScaleFactor(0.75)
+                                    }
+                                }
+                                Spacer()
+                                Text(homeTimerManager.formattedElapsedTime)
+                                    .font(.caption)
+                                    .monospacedDigit()
+                                    .lineLimit(1)
+                                    .minimumScaleFactor(0.75)
+                            }
+                            .padding(8)
+                            .background(Color.green.opacity(0.25))
+                            .overlay(
+                                RoundedRectangle(cornerRadius: 12)
+                                    .stroke(Color.green, lineWidth: 1)
+                            )
+                            .cornerRadius(12)
+                        }
+                        .buttonStyle(.plain)
+                    } else {
+                        Button("Start") {
+                            // Begin a pre-workout session immediately so Home can reflect Active state
+                            if workoutManager.sessionStartDate == nil {
+                                workoutManager.sessionStartDate = Date()
+                            }
+                            navigateToSetup = true
+                        }
+                        .buttonStyle(.borderedProminent)
+                        .controlSize(.large)
+                        .frame(maxWidth: .infinity)
                     }
-                    .buttonStyle(.borderedProminent)
-                    .controlSize(.large)
-                    .frame(maxWidth: .infinity)
                 }
                 .padding(.horizontal, 16)
                 .padding(.top, 8)
@@ -161,10 +209,35 @@ struct HomeView: View {
                 DispatchQueue.main.asyncAfter(deadline: .now() + 1.0) {
                     isSyncing = false
                 }
+                // Ensure timer reflects current active workout state
+                if workoutManager.isWorkoutActive {
+                    let start = workoutManager.currentWorkout?.startTime ?? workoutManager.sessionStartDate
+                    homeTimerManager.startWorkoutTimer(from: start)
+                } else {
+                    homeTimerManager.stopWorkoutTimer()
+                }
             }
-            .sheet(isPresented: $showingQuickStart) {
-                WorkoutSetupView()
-                    .environmentObject(workoutManager)
+            .onChange(of: workoutManager.isWorkoutActive) { isActive in
+                if isActive {
+                    let start = workoutManager.currentWorkout?.startTime ?? workoutManager.sessionStartDate
+                    homeTimerManager.startWorkoutTimer(from: start)
+                } else {
+                    homeTimerManager.stopWorkoutTimer()
+                }
+            }
+            // Navigation destinations (modern API)
+            .navigationDestination(isPresented: $navigateToSetup) {
+                WorkoutSetupView().environmentObject(workoutManager)
+            }
+            .navigationDestination(isPresented: $navigateToActiveWorkout) {
+                Group {
+                    if let wk = workoutManager.currentWorkout {
+                        WorkoutView(workout: wk)
+                            .environmentObject(workoutManager)
+                    } else {
+                        Text("No active workout")
+                    }
+                }
             }
             .sheet(isPresented: $showingTemplates) {
                 TemplatesView()

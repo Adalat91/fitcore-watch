@@ -137,6 +137,10 @@ struct WorkoutSetupView: View {
                 .padding(.top, 6)
                 .confirmationDialog("Cancel this workout?", isPresented: $showCancelConfirm, titleVisibility: .visible) {
                     Button("Cancel Workout", role: .destructive) {
+                        // Only clear the pre-workout session if a real workout hasn't started
+                        if !workoutManager.isWorkoutActive {
+                            workoutManager.sessionStartDate = nil
+                        }
                         dismiss()
                     }
                     Button("Keep Editing", role: .cancel) {}
@@ -154,7 +158,11 @@ struct WorkoutSetupView: View {
                     .environmentObject(workoutManager)
             }
             .onAppear {
-                timerManager.startWorkoutTimer()
+                // Initialize a session timer if one isn't already running
+                if workoutManager.sessionStartDate == nil {
+                    workoutManager.sessionStartDate = Date()
+                }
+                timerManager.startWorkoutTimer(from: workoutManager.sessionStartDate)
             }
             .onDisappear {
                 timerManager.stopWorkoutTimer()

@@ -15,6 +15,8 @@ class WorkoutManager: NSObject, ObservableObject {
     @Published var includeWarmupSession: Bool = false
     @Published var restTimersEnabled: Bool = true
     @Published var soundEnabled: Bool = true
+    // A session timer that begins when the user lands on the setup screen
+    @Published var sessionStartDate: Date?
     
     private let dataManager = DataManager()
     private let healthKitManager = HealthKitManager()
@@ -89,6 +91,8 @@ class WorkoutManager: NSObject, ObservableObject {
         
         currentWorkout = workout
         isWorkoutActive = true
+        // Clear setup session timer when actual workout starts
+        sessionStartDate = workout.startTime
         
         // Start health monitoring
         healthKitManager.startWorkoutSession()
@@ -104,6 +108,7 @@ class WorkoutManager: NSObject, ObservableObject {
         let workout = Workout(name: name, exercises: exercises)
         currentWorkout = workout
         isWorkoutActive = true
+        sessionStartDate = workout.startTime
         
         healthKitManager.startWorkoutSession()
         watchConnectivityManager.sendMessage(.startWorkout, data: encodeWorkout(workout))

@@ -168,9 +168,16 @@ class TimerManager: ObservableObject {
     // MARK: - Workout Session Timing
     
     func startWorkoutTimer() {
-        workoutStartTime = Date()
-        workoutElapsedTime = 0
+        startWorkoutTimer(from: Date())
+    }
+    
+    /// Starts the workout session timer using a provided start date (so it doesn't reset when navigating between views)
+    /// - Parameter start: The original workout start time. If nil, uses current Date.
+    func startWorkoutTimer(from start: Date?) {
+        workoutStartTime = start ?? Date()
+        updateWorkoutTimer() // update immediately
         
+        workoutTimer?.invalidate()
         workoutTimer = Timer.scheduledTimer(withTimeInterval: 1.0, repeats: true) { [weak self] _ in
             self?.updateWorkoutTimer()
         }
