@@ -124,15 +124,31 @@ struct HomeView: View {
                         }
                         .buttonStyle(.plain)
                     } else {
-                        Button("Start") {
+                        Button(action: {
                             if workoutManager.activeStartDate == nil {
                                 workoutManager.sessionStartDate = Date()
                             }
                             navPath.append(HomeRoute.setup)
+                        }) {
+                            HStack {
+                                Text("Start")
+                                    .font(.subheadline)
+                                    .lineLimit(1)
+                                    .minimumScaleFactor(0.8)
+                                Spacer()
+                                Image(systemName: "play.fill")
+                                    .font(.caption)
+                            }
+                            .padding(8)
+                            .frame(maxWidth: .infinity)
+                            .background(Color.green.opacity(0.25))
+                            .overlay(
+                                RoundedRectangle(cornerRadius: 12)
+                                    .stroke(Color.green, lineWidth: 1)
+                            )
+                            .cornerRadius(12)
                         }
-                        .buttonStyle(.borderedProminent)
-                        .controlSize(.large)
-                        .frame(maxWidth: .infinity)
+                        .buttonStyle(.plain)
                     }
                 }
                 .padding(.horizontal, 16)
