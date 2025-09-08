@@ -7,9 +7,14 @@ class TimerManager: ObservableObject {
     @Published var isRunning = false
     @Published var isPaused = false
     
+    // Workout session timing
+    @Published var workoutStartTime: Date?
+    @Published var workoutElapsedTime: TimeInterval = 0
+    
     private var timer: Timer?
     private var startTime: Date?
     private var pausedTime: TimeInterval = 0
+    private var workoutTimer: Timer?
     
     // MARK: - Timer Control
     
@@ -158,6 +163,49 @@ class TimerManager: ObservableObject {
     
     func quickStart5Minutes() {
         startTimer(duration: 300)
+    }
+    
+    // MARK: - Workout Session Timing
+    
+    func startWorkoutTimer() {
+        workoutStartTime = Date()
+        workoutElapsedTime = 0
+        
+        workoutTimer = Timer.scheduledTimer(withTimeInterval: 1.0, repeats: true) { [weak self] _ in
+            self?.updateWorkoutTimer()
+        }
+    }
+    
+    func stopWorkoutTimer() {
+        workoutTimer?.invalidate()
+        workoutTimer = nil
+    }
+    
+    func pauseWorkoutTimer() {
+        workoutTimer?.invalidate()
+        workoutTimer = nil
+    }
+    
+    func resumeWorkoutTimer() {
+        workoutTimer = Timer.scheduledTimer(withTimeInterval: 1.0, repeats: true) { [weak self] _ in
+            self?.updateWorkoutTimer()
+        }
+    }
+    
+    private func updateWorkoutTimer() {
+        guard let startTime = workoutStartTime else { return }
+        
+        let elapsed = Date().timeIntervalSince(startTime)
+        
+        DispatchQueue.main.async {
+            self.workoutElapsedTime = elapsed
+        }
+    }
+    
+    var formattedElapsedTime: String {
+        let minutes = Int(workoutElapsedTime) / 60
+        let seconds = Int(workoutElapsedTime) % 60
+        return String(format: "%02d:%02d", minutes, seconds)
     }
 }
 

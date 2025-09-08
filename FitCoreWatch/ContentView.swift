@@ -163,7 +163,8 @@ struct HomeView: View {
                 }
             }
             .sheet(isPresented: $showingQuickStart) {
-                QuickStartView()
+                WorkoutSetupView()
+                    .environmentObject(workoutManager)
             }
             .sheet(isPresented: $showingTemplates) {
                 TemplatesView()

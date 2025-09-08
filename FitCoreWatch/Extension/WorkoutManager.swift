@@ -11,6 +11,10 @@ class WorkoutManager: NSObject, ObservableObject {
     @Published var healthMetrics = HealthMetrics()
     @Published var workoutStats = WorkoutStats()
     @Published var isSynced = false // Sync status with iPhone
+    // User-configurable pre-workout options (Watch setup screen)
+    @Published var includeWarmupSession: Bool = false
+    @Published var restTimersEnabled: Bool = true
+    @Published var soundEnabled: Bool = true
     
     private let dataManager = DataManager()
     private let healthKitManager = HealthKitManager()
