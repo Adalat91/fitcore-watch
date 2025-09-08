@@ -43,6 +43,11 @@ struct HomeView: View {
     @State private var isSyncing = false
     @State private var navPath = NavigationPath()
     @StateObject private var homeTimerManager = TimerManager()
+    private static let timeFormatter: DateFormatter = {
+        let f = DateFormatter()
+        f.dateFormat = "h:mm" // 12-hour, no AM/PM
+        return f
+    }()
     
     var body: some View {
         NavigationStack(path: $navPath) {
@@ -79,9 +84,8 @@ struct HomeView: View {
                         
                         Spacer()
                         
-                        // Empty space to balance the layout
-                        Color.clear
-                            .frame(width: 20, height: 20)
+                        // Spacer for symmetry (time moved to overlay)
+                        Color.clear.frame(width: 20, height: 20)
                     }
                     
                     // Start or Active Workout (show active if a workout exists OR a pre-workout session is in progress)
@@ -274,6 +278,19 @@ struct HomeView: View {
             .sheet(isPresented: $showingMyTemplates) {
                 MyTemplatesView()
             }
+            // Top-right clock overlay
+            .overlay(alignment: .topTrailing) {
+                Text(Date(), formatter: Self.timeFormatter)
+                    .font(.system(size: 10))
+                    .foregroundColor(.white)
+                    .padding(.horizontal, 4)
+                    .padding(.vertical, 2)
+                    .background(Color.black.opacity(0.35))
+                    .cornerRadius(4)
+                    .id(workoutManager.uiTick)
+                    .offset(y: -18)
+                    .allowsHitTesting(false)
+            }
         }
     }
 }
@@ -310,7 +327,6 @@ struct WorkoutCard: View {
         .padding(.vertical, 4)
     }
 }
-
 struct StatCard: View {
     let title: String
     let value: String
@@ -402,10 +418,27 @@ struct WorkoutRow: View {
 
 struct ProfileView: View {
     @EnvironmentObject var workoutManager: WorkoutManager
+    private static let timeFormatter: DateFormatter = {
+        let f = DateFormatter()
+        f.dateFormat = "h:mm" // 12-hour, no AM/PM
+        return f
+    }()
     
     var body: some View {
         NavigationView {
-            List {
+            VStack(spacing: 0) {
+                // Header for Profile with time on the right
+                HStack {
+                    Spacer()
+                    Text("Profile")
+                        .font(.title3)
+                        .fontWeight(.semibold)
+                    Spacer()
+                }
+                .padding(.horizontal, 16)
+                .padding(.top, 8)
+                
+                List {
                 Section("Health Data") {
                     HStack {
                         Image(systemName: "heart.fill")
@@ -435,8 +468,8 @@ struct ProfileView: View {
                         // Export functionality
                     }
                 }
+                }
             }
-            .navigationTitle("Profile")
         }
     }
 }
