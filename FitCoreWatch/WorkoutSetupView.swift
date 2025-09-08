@@ -3,17 +3,19 @@ import SwiftUI
 struct WorkoutSetupView: View {
     @Environment(\.dismiss) private var dismiss
     @EnvironmentObject var workoutManager: WorkoutManager
+    @StateObject private var timerManager = TimerManager()
     
     @State private var includeWarmup = false
     @State private var restTimersEnabled = true
     @State private var soundEnabled = true
     
-    @State private var navigateToWorkout = false
     @State private var showingAddExercises = false
+    @State private var showCancelConfirm = false
     
     var body: some View {
         NavigationView {
-            VStack(spacing: 12) {
+            ScrollView {
+                VStack(spacing: 12) {
                 // Header with date/time and quick controls
                 HStack(spacing: 12) {
                     Text(Date(), style: .date)
@@ -37,12 +39,9 @@ struct WorkoutSetupView: View {
                 VStack(alignment: .leading, spacing: 8) {
                     HStack(alignment: .center) {
                         VStack(alignment: .leading, spacing: 2) {
-                            Text("Warmup Session")
+                            Text("Warmup")
                                 .font(.headline)
                                 .foregroundColor(.orange)
-                            Text("Prepare your body before the main workout")
-                                .font(.caption2)
-                                .foregroundColor(.secondary)
                         }
                         Spacer()
                         Toggle("Warmup", isOn: $includeWarmup)
@@ -57,9 +56,6 @@ struct WorkoutSetupView: View {
                             Text("Rest Timers")
                                 .font(.headline)
                                 .foregroundColor(.blue)
-                            Text("Show countdown timers between sets")
-                                .font(.caption2)
-                                .foregroundColor(.secondary)
                         }
                         Spacer()
                         Toggle("Rest Timers", isOn: $restTimersEnabled)
@@ -72,111 +68,101 @@ struct WorkoutSetupView: View {
                 
                 // Main workout options
                 VStack(alignment: .leading, spacing: 8) {
-                    HStack {
-                        Text("Main Workout")
-                            .font(.headline)
+                    HStack(spacing: 6) {
+                        Text("Workout")
+                            .font(.subheadline)
+                            .lineLimit(1)
+                            .minimumScaleFactor(0.8)
                         Spacer()
-                        Button(action: { showingAddExercises = true }) {
-                            HStack(spacing: 4) {
-                                Image(systemName: "plus.circle")
-                                Text("New")
-                            }
-                            .font(.caption)
+                        Button(action: {
+                            soundEnabled.toggle()
+                            HapticFeedback.trigger(.light)
+                        }) {
+                            Image(systemName: soundEnabled ? "bell.fill" : "bell.slash.fill")
+                                .font(.caption)
+                                .foregroundColor(soundEnabled ? .secondary : .red)
                         }
+                        .buttonStyle(.plain)
+                        .accessibilityLabel("Sound")
+                        .accessibilityValue(soundEnabled ? "On" : "Off")
                     }
-                    Toggle("Sound", isOn: $soundEnabled)
-                        .toggleStyle(.switch)
                     
                     Button(action: { showingAddExercises = true }) {
                         HStack {
+                            VStack(alignment: .leading, spacing: 2) {
+                                Text("Add Exercises")
+                                    .font(.subheadline)
+                                    .fontWeight(.semibold)
+                            }
+                            Spacer()
                             Image(systemName: "plus")
-                            Text("Add Exercises")
-                                .fontWeight(.semibold)
+                                .font(.body)
+                                .foregroundColor(.accentColor)
                         }
+                        .padding()
                         .frame(maxWidth: .infinity)
+                        .background(Color.gray.opacity(0.2))
+                        .cornerRadius(12)
                     }
-                    .buttonStyle(.borderedProminent)
+                    .buttonStyle(.plain)
                 }
                 .padding()
                 .background(Color.gray.opacity(0.2))
                 .cornerRadius(12)
                 
+                // Primary action: Finish
+                Button {
+                    if workoutManager.isWorkoutActive {
+                        workoutManager.completeWorkout()
+                    }
+                    dismiss()
+                } label: {
+                    Text("Finish")
+                        .fontWeight(.semibold)
+                        .frame(maxWidth: .infinity)
+                }
+                .buttonStyle(.borderedProminent)
+                .tint(.green)
+                .controlSize(.small)
+
                 // Danger/secondary
                 Button(role: .destructive) {
-                    dismiss()
+                    showCancelConfirm = true
                 } label: {
                     Text("Cancel Workout")
                         .frame(maxWidth: .infinity)
                 }
                 .buttonStyle(.bordered)
+                .controlSize(.small)
+                .padding(.top, 6)
+                .confirmationDialog("Cancel this workout?", isPresented: $showCancelConfirm, titleVisibility: .visible) {
+                    Button("Cancel Workout", role: .destructive) {
+                        dismiss()
+                    }
+                    Button("Keep Editing", role: .cancel) {}
+                }
                 
                 Spacer(minLength: 4)
-                
-                // Primary Start button to create the workout and navigate
-                NavigationLink(
-                    destination: destinationWorkoutView,
-                    isActive: $navigateToWorkout,
-                    label: { EmptyView() }
-                ).hidden()
-                
-                Button {
-                    startWorkout()
-                } label: {
-                    HStack {
-                        Image(systemName: "play.fill")
-                        Text("Start Workout")
-                            .fontWeight(.bold)
-                    }
-                    .frame(maxWidth: .infinity)
                 }
-                .buttonStyle(.borderedProminent)
-                .controlSize(.large)
+                .padding()
             }
-            .padding()
-            .navigationTitle("Start")
+            .navigationTitle(timerManager.formattedElapsedTime)
             .navigationBarTitleDisplayMode(.inline)
             .sheet(isPresented: $showingAddExercises) {
                 // Reuse templates for adding quickly on watch
                 TemplatesView()
                     .environmentObject(workoutManager)
             }
-        }
-    }
-    
-    private var destinationWorkoutView: some View {
-        Group {
-            if let wk = workoutManager.currentWorkout {
-                WorkoutView(workout: wk)
-                    .environmentObject(workoutManager)
-            } else {
-                // Fallback (shouldn’t happen)
-                Text("Failed to start workout")
+            .onAppear {
+                timerManager.startWorkoutTimer()
+            }
+            .onDisappear {
+                timerManager.stopWorkoutTimer()
             }
         }
     }
     
-    private func startWorkout() {
-        // Persist user choices to manager for later use
-        workoutManager.includeWarmupSession = includeWarmup
-        workoutManager.restTimersEnabled = restTimersEnabled
-        workoutManager.soundEnabled = soundEnabled
-        
-        var exercises: [Exercise] = []
-        if includeWarmup {
-            let warmup = Exercise(
-                name: "Warmup",
-                category: "Warmup",
-                sets: [Set(weight: nil, reps: 10, restTime: 60)]
-            )
-            exercises.append(warmup)
-        }
-        
-        let name = DateFormatter.localizedString(from: Date(), dateStyle: .medium, timeStyle: .short)
-        workoutManager.startCustomWorkout(name: "Workout - \(name)", exercises: exercises)
-        
-        // Navigate to the live workout UI
-        navigateToWorkout = true
-    }
+    // No explicit start button; the workout will be started from another UI action.
 }
 
 #Preview {
