@@ -10,6 +10,8 @@ struct WorkoutSetupView: View {
     @State private var soundEnabled = true
     
     @State private var showingAddExercises = false
+    @State private var showingInfo = false
+    @State private var isPaused = false
     @State private var showCancelConfirm = false
     
     var body: some View {
@@ -22,16 +24,14 @@ struct WorkoutSetupView: View {
                         .font(.caption2)
                         .foregroundColor(.secondary)
                     Spacer()
-                    Button(action: { /* pause not applicable yet on setup */ }) {
-                        Image(systemName: "pause.fill")
+                    Button(action: togglePause) {
+                        Image(systemName: isPaused ? "play.fill" : "pause.fill")
                     }
                     .buttonStyle(.plain)
-                    .disabled(true)
-                    Button(action: { /* info */ }) {
+                    Button(action: { showingInfo = true }) {
                         Image(systemName: "info.circle")
                     }
                     .buttonStyle(.plain)
-                    .disabled(true)
                 }
                 .padding(.top, 4)
                 
@@ -150,11 +150,15 @@ struct WorkoutSetupView: View {
                 }
                 .padding()
             }
-            .navigationTitle(timerManager.formattedElapsedTime)
+            .navigationTitle(workoutManager.formattedActiveElapsed)
             .navigationBarTitleDisplayMode(.inline)
             .sheet(isPresented: $showingAddExercises) {
                 // Reuse templates for adding quickly on watch
                 TemplatesView()
+                    .environmentObject(workoutManager)
+            }
+            .sheet(isPresented: $showingInfo) {
+                SessionInfoView()
                     .environmentObject(workoutManager)
             }
             .onAppear {
@@ -163,14 +167,87 @@ struct WorkoutSetupView: View {
                     workoutManager.sessionStartDate = Date()
                 }
                 timerManager.startWorkoutTimer(from: workoutManager.sessionStartDate)
+                // Align local pause state with global state
+                isPaused = workoutManager.isSessionPaused
+                if isPaused { timerManager.pauseWorkoutTimer() }
             }
             .onDisappear {
                 timerManager.stopWorkoutTimer()
+            }
+            .onChange(of: workoutManager.isSessionPaused) { paused in
+                isPaused = paused
+                if paused {
+                    timerManager.pauseWorkoutTimer()
+                } else {
+                    timerManager.resumeWorkoutTimer()
+                }
             }
         }
     }
     
     // No explicit start button; the workout will be started from another UI action.
+    private func togglePause() {
+        if isPaused {
+            // resume globally
+            workoutManager.resumeSession()
+            timerManager.resumeWorkoutTimer()
+        } else {
+            // pause globally
+            workoutManager.pauseSession()
+            timerManager.pauseWorkoutTimer()
+        }
+        isPaused.toggle()
+    }
+}
+
+// Simple info sheet for the session
+struct SessionInfoView: View {
+    @Environment(\.dismiss) private var dismiss
+    @EnvironmentObject var workoutManager: WorkoutManager
+    
+    var body: some View {
+        NavigationView {
+            List {
+                Section("Session") {
+                    HStack {
+                        Text("Started")
+                        Spacer()
+                        Text(startedText)
+                            .foregroundColor(.secondary)
+                    }
+                    HStack {
+                        Text("Elapsed")
+                        Spacer()
+                        Text(elapsedText)
+                            .foregroundColor(.secondary)
+                    }
+                }
+                Section("Options") {
+                    HStack { Text("Warmup"); Spacer(); Text(workoutManager.includeWarmupSession ? "On" : "Off").foregroundColor(.secondary) }
+                    HStack { Text("Rest Timers"); Spacer(); Text(workoutManager.restTimersEnabled ? "On" : "Off").foregroundColor(.secondary) }
+                    HStack { Text("Sound"); Spacer(); Text(workoutManager.soundEnabled ? "On" : "Off").foregroundColor(.secondary) }
+                }
+            }
+            .navigationTitle("Info")
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .cancellationAction) {
+                    Button("Done") { dismiss() }
+                }
+            }
+        }
+    }
+    
+    private var startedText: String {
+        if let start = workoutManager.activeStartDate { return start.formatted(date: .abbreviated, time: .shortened) }
+        return "—"
+    }
+    private var elapsedText: String {
+        guard let start = workoutManager.activeStartDate else { return "—" }
+        let secs = Int(Date().timeIntervalSince(start))
+        let m = secs / 60, s = secs % 60
+        return String(format: "%d:%02d", m, s)
+    }
 }
 
 #Preview {

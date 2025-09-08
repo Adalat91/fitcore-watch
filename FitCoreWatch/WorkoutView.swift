@@ -4,6 +4,7 @@ struct WorkoutView: View {
     let workout: Workout
     @EnvironmentObject var workoutManager: WorkoutManager
     @StateObject private var timerManager = TimerManager()
+    @State private var isPaused = false
     @State private var currentExerciseIndex = 0
     @State private var currentSetIndex = 0
     @State private var showingTimer = false
@@ -109,7 +110,23 @@ struct WorkoutView: View {
         .navigationTitle("Workout")
         .navigationBarTitleDisplayMode(.inline)
         .onAppear {
-            setupWorkout()
+            // Keep local timers in sync for any rest/aux timers, and align pause state
+            if let start = workoutManager.activeStartDate {
+                timerManager.startWorkoutTimer(from: start)
+            }
+            isPaused = workoutManager.isSessionPaused
+            if isPaused { timerManager.pauseWorkoutTimer() }
+        }
+        .onDisappear {
+            timerManager.stopWorkoutTimer()
+        }
+        .onChange(of: workoutManager.isSessionPaused) { paused in
+            isPaused = paused
+            if paused {
+                timerManager.pauseWorkoutTimer()
+            } else {
+                timerManager.resumeWorkoutTimer()
+            }
         }
     }
     
@@ -172,6 +189,17 @@ struct WorkoutView: View {
     private func setupWorkout() {
         currentExerciseIndex = 0
         currentSetIndex = 0
+    }
+    
+    private func togglePause() {
+        if isPaused {
+            workoutManager.resumeSession()
+            timerManager.resumeWorkoutTimer()
+        } else {
+            workoutManager.pauseSession()
+            timerManager.pauseWorkoutTimer()
+        }
+        isPaused.toggle()
     }
 }
 

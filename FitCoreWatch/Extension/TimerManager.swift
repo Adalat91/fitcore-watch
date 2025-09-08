@@ -15,6 +15,8 @@ class TimerManager: ObservableObject {
     private var startTime: Date?
     private var pausedTime: TimeInterval = 0
     private var workoutTimer: Timer?
+    private var workoutPauseStart: Date?
+    private var workoutPausedAccumulated: TimeInterval = 0
     
     // MARK: - Timer Control
     
@@ -175,6 +177,9 @@ class TimerManager: ObservableObject {
     /// - Parameter start: The original workout start time. If nil, uses current Date.
     func startWorkoutTimer(from start: Date?) {
         workoutStartTime = start ?? Date()
+        // Reset pause tracking whenever (re)starting
+        workoutPauseStart = nil
+        workoutPausedAccumulated = 0
         updateWorkoutTimer() // update immediately
         
         workoutTimer?.invalidate()
@@ -186,14 +191,22 @@ class TimerManager: ObservableObject {
     func stopWorkoutTimer() {
         workoutTimer?.invalidate()
         workoutTimer = nil
+        workoutPauseStart = nil
+        workoutPausedAccumulated = 0
     }
     
     func pauseWorkoutTimer() {
+        guard workoutPauseStart == nil else { return }
         workoutTimer?.invalidate()
         workoutTimer = nil
+        workoutPauseStart = Date()
     }
     
     func resumeWorkoutTimer() {
+        if let pauseStart = workoutPauseStart {
+            workoutPausedAccumulated += Date().timeIntervalSince(pauseStart)
+            workoutPauseStart = nil
+        }
         workoutTimer = Timer.scheduledTimer(withTimeInterval: 1.0, repeats: true) { [weak self] _ in
             self?.updateWorkoutTimer()
         }
@@ -202,7 +215,14 @@ class TimerManager: ObservableObject {
     private func updateWorkoutTimer() {
         guard let startTime = workoutStartTime else { return }
         
-        let elapsed = Date().timeIntervalSince(startTime)
+        var elapsed = Date().timeIntervalSince(startTime)
+        // Subtract accumulated paused time
+        elapsed -= workoutPausedAccumulated
+        if let pauseStart = workoutPauseStart {
+            // If currently paused, exclude the time since pause began
+            elapsed -= Date().timeIntervalSince(pauseStart)
+        }
+        if elapsed < 0 { elapsed = 0 }
         
         DispatchQueue.main.async {
             self.workoutElapsedTime = elapsed

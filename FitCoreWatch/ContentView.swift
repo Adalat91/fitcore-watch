@@ -108,11 +108,12 @@ struct HomeView: View {
                                     }
                                 }
                                 Spacer()
-                                Text(homeTimerManager.formattedElapsedTime)
+                                Text(workoutManager.formattedActiveElapsed)
                                     .font(.caption)
                                     .monospacedDigit()
                                     .lineLimit(1)
                                     .minimumScaleFactor(0.75)
+                                    .id(workoutManager.uiTick)
                             }
                             .padding(8)
                             .background(Color.green.opacity(0.25))
@@ -231,6 +232,9 @@ struct HomeView: View {
                 // Ensure timer reflects current active or pre-workout session start
                 if let start = workoutManager.activeStartDate {
                     homeTimerManager.startWorkoutTimer(from: start)
+                    if workoutManager.isSessionPaused {
+                        homeTimerManager.pauseWorkoutTimer()
+                    }
                 } else {
                     homeTimerManager.stopWorkoutTimer()
                 }
@@ -238,8 +242,18 @@ struct HomeView: View {
             .onChange(of: workoutManager.activeStartDate) { start in
                 if let start {
                     homeTimerManager.startWorkoutTimer(from: start)
+                    if workoutManager.isSessionPaused {
+                        homeTimerManager.pauseWorkoutTimer()
+                    }
                 } else {
                     homeTimerManager.stopWorkoutTimer()
+                }
+            }
+            .onChange(of: workoutManager.isSessionPaused) { paused in
+                if paused {
+                    homeTimerManager.pauseWorkoutTimer()
+                } else {
+                    homeTimerManager.resumeWorkoutTimer()
                 }
             }
             // Navigation destinations (modern API)

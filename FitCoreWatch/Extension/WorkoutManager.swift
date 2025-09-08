@@ -23,6 +23,31 @@ class WorkoutManager: NSObject, ObservableObject {
         currentWorkout?.startTime ?? sessionStartDate
     }
     
+    // Live elapsed time derived from the single source of truth + pause accounting
+    var activeElapsedTime: TimeInterval {
+        guard let start = activeStartDate else { return 0 }
+        var elapsed = Date().timeIntervalSince(start)
+        elapsed -= sessionPausedAccumulated
+        if let pauseStart = sessionPauseStart {
+            elapsed -= Date().timeIntervalSince(pauseStart)
+        }
+        return max(0, elapsed)
+    }
+    
+    var formattedActiveElapsed: String {
+        let total = Int(activeElapsedTime)
+        let m = total / 60
+        let s = total % 60
+        return String(format: "%02d:%02d", m, s)
+    }
+    
+    // Global pause state for the session (affects all views)
+    @Published var isSessionPaused: Bool = false
+    @Published var sessionPauseStart: Date?
+    @Published var sessionPausedAccumulated: TimeInterval = 0
+    @Published var uiTick: Date = Date()
+    private var uiTimer: Timer?
+    
     private let dataManager = DataManager()
     private let healthKitManager = HealthKitManager()
     private let watchConnectivityManager = WatchConnectivityManager()
@@ -87,6 +112,7 @@ class WorkoutManager: NSObject, ObservableObject {
         if let ts = UserDefaults.standard.object(forKey: AppConstants.UserDefaultsKeys.sessionStartDate) as? TimeInterval {
             self.sessionStartDate = Date(timeIntervalSince1970: ts)
         }
+        updateUITimer()
     }
     
     // MARK: - Workout Management
@@ -102,7 +128,12 @@ class WorkoutManager: NSObject, ObservableObject {
         isWorkoutActive = true
         // Transition session timer to real workout start and persist
         sessionStartDate = workout.startTime
+        // Reset pause state when transitioning to a real workout
+        isSessionPaused = false
+        sessionPauseStart = nil
+        sessionPausedAccumulated = 0
         UserDefaults.standard.set(workout.startTime.timeIntervalSince1970, forKey: AppConstants.UserDefaultsKeys.sessionStartDate)
+        updateUITimer()
         
         // Start health monitoring
         healthKitManager.startWorkoutSession()
@@ -119,10 +150,14 @@ class WorkoutManager: NSObject, ObservableObject {
         currentWorkout = workout
         isWorkoutActive = true
         sessionStartDate = workout.startTime
+        isSessionPaused = false
+        sessionPauseStart = nil
+        sessionPausedAccumulated = 0
         
         healthKitManager.startWorkoutSession()
         watchConnectivityManager.sendMessage(.startWorkout, data: encodeWorkout(workout))
         saveWorkout(workout)
+        updateUITimer()
     }
     
     func completeWorkout() {
@@ -150,7 +185,46 @@ class WorkoutManager: NSObject, ObservableObject {
         isWorkoutActive = false
         // Clear persisted session start
         sessionStartDate = nil
+        isSessionPaused = false
+        sessionPauseStart = nil
+        sessionPausedAccumulated = 0
         UserDefaults.standard.removeObject(forKey: AppConstants.UserDefaultsKeys.sessionStartDate)
+        updateUITimer()
+    }
+
+    // MARK: - Global Pause/Resume for session
+    func pauseSession() {
+        guard !isSessionPaused else { return }
+        isSessionPaused = true
+        sessionPauseStart = Date()
+        // If a HealthKit workout is active, also pause it
+        if isWorkoutActive { healthKitManager.pauseWorkoutSession() }
+        updateUITimer()
+    }
+    
+    func resumeSession() {
+        guard isSessionPaused else { return }
+        if let pauseStart = sessionPauseStart {
+            sessionPausedAccumulated += Date().timeIntervalSince(pauseStart)
+        }
+        sessionPauseStart = nil
+        isSessionPaused = false
+        if isWorkoutActive { healthKitManager.resumeWorkoutSession() }
+        updateUITimer()
+    }
+
+    // MARK: - UI Timer driving global refresh
+    private func updateUITimer() {
+        if activeStartDate != nil {
+            if uiTimer == nil {
+                uiTimer = Timer.scheduledTimer(withTimeInterval: 1.0, repeats: true) { [weak self] _ in
+                    DispatchQueue.main.async { self?.uiTick = Date() }
+                }
+            }
+        } else {
+            uiTimer?.invalidate()
+            uiTimer = nil
+        }
     }
     
     func pauseWorkout() {
