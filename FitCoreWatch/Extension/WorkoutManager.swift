@@ -18,6 +18,11 @@ class WorkoutManager: NSObject, ObservableObject {
     // A session timer that begins when the user lands on the setup screen
     @Published var sessionStartDate: Date?
     
+    // Unified source of truth for any active session start time (pre-workout or in-workout)
+    var activeStartDate: Date? {
+        currentWorkout?.startTime ?? sessionStartDate
+    }
+    
     private let dataManager = DataManager()
     private let healthKitManager = HealthKitManager()
     private let watchConnectivityManager = WatchConnectivityManager()
@@ -78,6 +83,10 @@ class WorkoutManager: NSObject, ObservableObject {
         loadWorkouts()
         loadWorkoutStats()
         loadUserTemplates()
+        // Restore persisted session start date if any
+        if let ts = UserDefaults.standard.object(forKey: AppConstants.UserDefaultsKeys.sessionStartDate) as? TimeInterval {
+            self.sessionStartDate = Date(timeIntervalSince1970: ts)
+        }
     }
     
     // MARK: - Workout Management
@@ -91,8 +100,9 @@ class WorkoutManager: NSObject, ObservableObject {
         
         currentWorkout = workout
         isWorkoutActive = true
-        // Clear setup session timer when actual workout starts
+        // Transition session timer to real workout start and persist
         sessionStartDate = workout.startTime
+        UserDefaults.standard.set(workout.startTime.timeIntervalSince1970, forKey: AppConstants.UserDefaultsKeys.sessionStartDate)
         
         // Start health monitoring
         healthKitManager.startWorkoutSession()
@@ -138,6 +148,9 @@ class WorkoutManager: NSObject, ObservableObject {
         
         currentWorkout = nil
         isWorkoutActive = false
+        // Clear persisted session start
+        sessionStartDate = nil
+        UserDefaults.standard.removeObject(forKey: AppConstants.UserDefaultsKeys.sessionStartDate)
     }
     
     func pauseWorkout() {

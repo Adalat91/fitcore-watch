@@ -30,18 +30,22 @@ struct ContentView: View {
 
 }
 
+enum HomeRoute: Hashable {
+    case setup
+    case activeWorkout
+}
+
 struct HomeView: View {
     @EnvironmentObject var workoutManager: WorkoutManager
     @State private var showingQuickStart = false
     @State private var showingTemplates = false
     @State private var showingMyTemplates = false
     @State private var isSyncing = false
-    @State private var navigateToSetup = false
-    @State private var navigateToActiveWorkout = false
+    @State private var navPath = NavigationPath()
     @StateObject private var homeTimerManager = TimerManager()
     
     var body: some View {
-        NavigationStack {
+        NavigationStack(path: $navPath) {
             VStack(spacing: 0) {
                 // Header Section
                 VStack(spacing: 16) {
@@ -81,12 +85,12 @@ struct HomeView: View {
                     }
                     
                     // Start or Active Workout (show active if a workout exists OR a pre-workout session is in progress)
-                    if let activeWorkout = workoutManager.currentWorkout ?? (workoutManager.sessionStartDate != nil ? Workout(name: "", exercises: []) : nil) {
+                    if let activeWorkout = workoutManager.currentWorkout ?? (workoutManager.activeStartDate != nil ? Workout(name: "", exercises: []) : nil) {
                         Button(action: {
                             if workoutManager.currentWorkout != nil {
-                                navigateToActiveWorkout = true
+                                navPath.append(HomeRoute.activeWorkout)
                             } else {
-                                navigateToSetup = true
+                                navPath.append(HomeRoute.setup)
                             }
                         }) {
                             HStack {
@@ -121,11 +125,10 @@ struct HomeView: View {
                         .buttonStyle(.plain)
                     } else {
                         Button("Start") {
-                            // Begin a pre-workout session immediately so Home can reflect Active state
-                            if workoutManager.sessionStartDate == nil {
+                            if workoutManager.activeStartDate == nil {
                                 workoutManager.sessionStartDate = Date()
                             }
-                            navigateToSetup = true
+                            navPath.append(HomeRoute.setup)
                         }
                         .buttonStyle(.borderedProminent)
                         .controlSize(.large)
@@ -209,33 +212,33 @@ struct HomeView: View {
                 DispatchQueue.main.asyncAfter(deadline: .now() + 1.0) {
                     isSyncing = false
                 }
-                // Ensure timer reflects current active workout state
-                if workoutManager.isWorkoutActive {
-                    let start = workoutManager.currentWorkout?.startTime ?? workoutManager.sessionStartDate
+                // Ensure timer reflects current active or pre-workout session start
+                if let start = workoutManager.activeStartDate {
                     homeTimerManager.startWorkoutTimer(from: start)
                 } else {
                     homeTimerManager.stopWorkoutTimer()
                 }
             }
-            .onChange(of: workoutManager.isWorkoutActive) { isActive in
-                if isActive {
-                    let start = workoutManager.currentWorkout?.startTime ?? workoutManager.sessionStartDate
+            .onChange(of: workoutManager.activeStartDate) { start in
+                if let start {
                     homeTimerManager.startWorkoutTimer(from: start)
                 } else {
                     homeTimerManager.stopWorkoutTimer()
                 }
             }
             // Navigation destinations (modern API)
-            .navigationDestination(isPresented: $navigateToSetup) {
-                WorkoutSetupView().environmentObject(workoutManager)
-            }
-            .navigationDestination(isPresented: $navigateToActiveWorkout) {
-                Group {
+            .navigationDestination(for: HomeRoute.self) { route in
+                switch route {
+                case .setup:
+                    WorkoutSetupView()
+                        .environmentObject(workoutManager)
+                case .activeWorkout:
                     if let wk = workoutManager.currentWorkout {
                         WorkoutView(workout: wk)
                             .environmentObject(workoutManager)
                     } else {
-                        Text("No active workout")
+                        WorkoutSetupView()
+                            .environmentObject(workoutManager)
                     }
                 }
             }

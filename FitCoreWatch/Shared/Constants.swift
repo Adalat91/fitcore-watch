@@ -26,6 +26,7 @@ struct AppConstants {
         static let userSettings = "user_settings"
         static let lastSyncDate = "last_sync_date"
         static let workoutPreferences = "workout_preferences"
+        static let sessionStartDate = "session_start_date"
     }
     
     // MARK: - Timer Constants
