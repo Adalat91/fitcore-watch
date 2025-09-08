@@ -2,46 +2,13 @@ import SwiftUI
 
 struct ContentView: View {
     @StateObject private var workoutManager = WorkoutManager()
-    @State private var selectedTab = 0
     
     var body: some View {
-        TabView(selection: $selectedTab) {
-            // Home Tab
-            HomeView()
-                .tabItem {
-                    Image(systemName: "house.fill")
-                    Text("Home")
-                }
-                .tag(0)
-            
-            // Workouts Tab
-            WorkoutListView()
-                .tabItem {
-                    Image(systemName: "dumbbell.fill")
-                    Text("Workouts")
-                }
-                .tag(1)
-            
-            // Timer Tab
-            TimerView()
-                .tabItem {
-                    Image(systemName: "timer")
-                    Text("Timer")
-                }
-                .tag(2)
-            
-            // Profile Tab
-            ProfileView()
-                .tabItem {
-                    Image(systemName: "person.fill")
-                    Text("Profile")
-                }
-                .tag(3)
-        }
-        .environmentObject(workoutManager)
-        .onAppear {
-            workoutManager.requestHealthKitPermissions()
-        }
+        HomeView()
+            .environmentObject(workoutManager)
+            .onAppear {
+                workoutManager.requestHealthKitPermissions()
+            }
     }
 }
 
@@ -98,14 +65,6 @@ struct HomeView: View {
                             .foregroundColor(.white)
                         
                         Spacer()
-                        
-                        Button(action: {
-                            // Sort action
-                        }) {
-                            Image(systemName: "arrow.up.arrow.down")
-                                .font(.caption)
-                                .foregroundColor(.blue)
-                        }
                     }
                     
                     VStack(spacing: 8) {
