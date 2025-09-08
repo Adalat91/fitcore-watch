@@ -278,19 +278,7 @@ struct HomeView: View {
             .sheet(isPresented: $showingMyTemplates) {
                 MyTemplatesView()
             }
-            // Top-right clock overlay
-            .overlay(alignment: .topTrailing) {
-                Text(Date(), formatter: Self.timeFormatter)
-                    .font(.system(size: 10))
-                    .foregroundColor(.white)
-                    .padding(.horizontal, 4)
-                    .padding(.vertical, 2)
-                    .background(Color.black.opacity(0.35))
-                    .cornerRadius(4)
-                    .id(workoutManager.uiTick)
-                    .offset(y: -18)
-                    .allowsHitTesting(false)
-            }
+            
         }
     }
 }
@@ -386,16 +374,6 @@ struct WorkoutRow: View {
                     .fontWeight(.semibold)
                 
                 Spacer()
-                
-                if workout.isActive {
-                    Text("Active")
-                        .font(.caption)
-                        .padding(.horizontal, 8)
-                        .padding(.vertical, 4)
-                        .background(Color.green)
-                        .foregroundColor(.white)
-                        .cornerRadius(8)
-                }
             }
             
             HStack {
