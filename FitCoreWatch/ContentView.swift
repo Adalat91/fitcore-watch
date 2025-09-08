@@ -48,103 +48,134 @@ struct ContentView: View {
 struct HomeView: View {
     @EnvironmentObject var workoutManager: WorkoutManager
     @State private var showingQuickStart = false
+    @State private var showingTemplates = false
+    @State private var isSynced = true // Sync status
     
     var body: some View {
         NavigationView {
-            ScrollView {
+            VStack(spacing: 0) {
+                // Header Section
                 VStack(spacing: 16) {
-                    // Quick Start Card
-                    VStack(alignment: .leading, spacing: 12) {
-                        HStack {
-                            Image(systemName: "play.circle.fill")
-                                .font(.title2)
-                                .foregroundColor(.accentColor)
-                            
-                            Text("Quick Start")
-                                .font(.headline)
-                                .fontWeight(.semibold)
-                            
-                            Spacer()
-                        }
+                    HStack {
+                        // Sync icon with status color
+                        Image(systemName: "arrow.clockwise")
+                            .font(.caption2)
+                            .foregroundColor(isSynced ? .green : .red)
                         
-                        Text("Start a workout in seconds")
-                            .font(.caption)
-                            .foregroundColor(.secondary)
+                        Spacer()
                         
-                        Button("Start Workout") {
-                            showingQuickStart = true
-                        }
-                        .buttonStyle(.borderedProminent)
-                        .controlSize(.small)
+                        Text("Workout")
+                            .font(.title3)
+                            .fontWeight(.semibold)
+                            .foregroundColor(.white)
+                        
+                        Spacer()
+                        
+                        // Empty space to balance the layout
+                        Color.clear
+                            .frame(width: 20, height: 20)
                     }
-                    .padding()
-                    .background(Color.gray.opacity(0.3))
-                    .cornerRadius(12)
                     
-                    // Recent Workouts
-                    if !workoutManager.recentWorkouts.isEmpty {
-                        VStack(alignment: .leading, spacing: 12) {
+                    // Start Button
+                    Button("Start") {
+                        showingQuickStart = true
+                    }
+                    .buttonStyle(.borderedProminent)
+                    .controlSize(.large)
+                    .frame(maxWidth: .infinity)
+                }
+                .padding(.horizontal, 16)
+                .padding(.top, 8)
+                
+                Spacer()
+                
+                // Templates Section
+                VStack(spacing: 12) {
+                    HStack {
+                        Text("Templates")
+                            .font(.headline)
+                            .fontWeight(.semibold)
+                            .foregroundColor(.white)
+                        
+                        Spacer()
+                        
+                        Button(action: {
+                            // Sort action
+                        }) {
+                            Image(systemName: "arrow.up.arrow.down")
+                                .font(.caption)
+                                .foregroundColor(.blue)
+                        }
+                    }
+                    
+                    VStack(spacing: 8) {
+                        // My Templates
+                        Button(action: {
+                            // Navigate to my templates
+                        }) {
                             HStack {
-                                Text("Recent Workouts")
-                                    .font(.headline)
-                                    .fontWeight(.semibold)
+                                Image(systemName: "folder")
+                                    .font(.subheadline)
+                                    .foregroundColor(.blue)
+                                
+                                Text("My Templates")
+                                    .font(.subheadline)
+                                    .foregroundColor(.white)
                                 
                                 Spacer()
                                 
-                                Button("See All") {
-                                    // Navigate to workout list
-                                }
-                                .font(.caption)
-                                .foregroundColor(.accentColor)
-                            }
-                            
-                            ForEach(workoutManager.recentWorkouts.prefix(3)) { workout in
-                                WorkoutCard(workout: workout)
+                                Text("0")
+                                    .font(.caption)
+                                    .foregroundColor(.secondary)
                             }
                         }
-                        .padding()
-                        .background(Color.gray.opacity(0.3))
-                        .cornerRadius(12)
-                    }
-                    
-                    // Stats Overview
-                    VStack(alignment: .leading, spacing: 12) {
-                        Text("Today's Stats")
-                            .font(.headline)
-                            .fontWeight(.semibold)
+                        .buttonStyle(PlainButtonStyle())
                         
-                        HStack(spacing: 20) {
-                            StatCard(
-                                title: "Workouts",
-                                value: "\(workoutManager.todayWorkoutCount)",
-                                icon: "dumbbell.fill",
-                                color: .blue
-                            )
-                            
-                            StatCard(
-                                title: "Duration",
-                                value: "\(workoutManager.todayDurationMinutes) min",
-                                icon: "clock.fill",
-                                color: .green
-                            )
-                            
-                            StatCard(
-                                title: "Calories",
-                                value: "\(workoutManager.todayCalories)",
-                                icon: "flame.fill",
-                                color: .orange
-                            )
+                        // Example Templates
+                        Button(action: {
+                            showingTemplates = true
+                        }) {
+                            HStack {
+                                Image(systemName: "folder")
+                                    .font(.subheadline)
+                                    .foregroundColor(.blue)
+                                
+                                Text("Example Templates")
+                                    .font(.subheadline)
+                                    .foregroundColor(.white)
+                                
+                                Spacer()
+                                
+                                Text("5")
+                                    .font(.caption)
+                                    .foregroundColor(.secondary)
+                            }
                         }
+                        .buttonStyle(PlainButtonStyle())
                     }
-                    .padding()
-                    .background(Color.gray.opacity(0.3))
-                    .cornerRadius(12)
                 }
-                .padding()
+                .padding(.horizontal, 16)
+                .padding(.bottom, 8)
+                
+                // Page Indicators
+                HStack(spacing: 4) {
+                    Circle()
+                        .fill(Color.white)
+                        .frame(width: 6, height: 6)
+                    
+                    Circle()
+                        .fill(Color.white.opacity(0.3))
+                        .frame(width: 6, height: 6)
+                }
+                .padding(.bottom, 8)
             }
-            .navigationTitle("FitCore")
+            .background(Color.black)
+            .navigationBarHidden(true)
             .sheet(isPresented: $showingQuickStart) {
                 QuickStartView()
+            }
+            .sheet(isPresented: $showingTemplates) {
+                TemplatesView()
             }
         }
     }
@@ -370,6 +401,72 @@ struct QuickStartView: View {
                     Button("Cancel") {
                         dismiss()
                     }
+                }
+            }
+        }
+    }
+}
+
+struct TemplatesView: View {
+    @Environment(\.dismiss) private var dismiss
+    @EnvironmentObject var workoutManager: WorkoutManager
+    
+    var body: some View {
+        NavigationView {
+            VStack(spacing: 16) {
+                Text("Example Templates")
+                    .font(.title2)
+                    .fontWeight(.semibold)
+                    .foregroundColor(.white)
+                
+                Text("Choose from pre-built workout templates")
+                    .font(.subheadline)
+                    .foregroundColor(.secondary)
+                    .multilineTextAlignment(.center)
+                
+                VStack(spacing: 12) {
+                    ForEach(workoutManager.quickStartTemplates) { template in
+                        Button(action: {
+                            workoutManager.startWorkout(from: template)
+                            dismiss()
+                        }) {
+                            HStack {
+                                VStack(alignment: .leading) {
+                                    Text(template.name)
+                                        .font(.headline)
+                                        .fontWeight(.medium)
+                                        .foregroundColor(.white)
+                                    
+                                    Text("\(template.exercises.count) exercises")
+                                        .font(.caption)
+                                        .foregroundColor(.secondary)
+                                }
+                                
+                                Spacer()
+                                
+                                Image(systemName: "play.circle.fill")
+                                    .font(.title2)
+                                    .foregroundColor(.blue)
+                            }
+                            .padding()
+                            .background(Color.gray.opacity(0.3))
+                            .cornerRadius(12)
+                        }
+                        .buttonStyle(PlainButtonStyle())
+                    }
+                }
+                
+                Spacer()
+            }
+            .padding()
+            .background(Color.black)
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .cancellationAction) {
+                    Button("Cancel") {
+                        dismiss()
+                    }
+                    .foregroundColor(.white)
                 }
             }
         }
