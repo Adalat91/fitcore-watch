@@ -33,6 +33,7 @@ struct HomeView: View {
     @EnvironmentObject var workoutManager: WorkoutManager
     @State private var showingQuickStart = false
     @State private var showingTemplates = false
+    @State private var showingMyTemplates = false
     @State private var isSyncing = false
     
     var body: some View {
@@ -103,6 +104,7 @@ struct HomeView: View {
                         // My Templates
                         Button(action: {
                             // Navigate to my templates
+                            showingMyTemplates = true
                         }) {
                             HStack {
                                 Image(systemName: "folder")
@@ -115,7 +117,7 @@ struct HomeView: View {
                                 
                                 Spacer()
                                 
-                                Text("0")
+                                Text("\(workoutManager.myTemplatesCount)")
                                     .font(.caption)
                                     .foregroundColor(.secondary)
                             }
@@ -165,6 +167,9 @@ struct HomeView: View {
             }
             .sheet(isPresented: $showingTemplates) {
                 TemplatesView()
+            }
+            .sheet(isPresented: $showingMyTemplates) {
+                MyTemplatesView()
             }
         }
     }
@@ -442,6 +447,105 @@ struct TemplatesView: View {
                             .cornerRadius(12)
                         }
                         .buttonStyle(PlainButtonStyle())
+                    }
+                }
+                
+                Spacer()
+            }
+            .padding()
+            .background(Color.black)
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .cancellationAction) {
+                    Button("Cancel") {
+                        dismiss()
+                    }
+                    .foregroundColor(.white)
+                }
+            }
+        }
+    }
+}
+
+struct MyTemplatesView: View {
+    @Environment(\.dismiss) private var dismiss
+    @EnvironmentObject var workoutManager: WorkoutManager
+    
+    var body: some View {
+        NavigationView {
+            VStack(spacing: 16) {
+                Text("My Templates")
+                    .font(.title2)
+                    .fontWeight(.semibold)
+                    .foregroundColor(.white)
+                
+                if workoutManager.userTemplates.isEmpty {
+                    VStack(spacing: 12) {
+                        Image(systemName: "folder")
+                            .font(.largeTitle)
+                            .foregroundColor(.secondary)
+                        
+                        Text("No Custom Templates")
+                            .font(.headline)
+                            .foregroundColor(.white)
+                        
+                        Text("Create templates in the main app to see them here")
+                            .font(.subheadline)
+                            .foregroundColor(.secondary)
+                            .multilineTextAlignment(.center)
+                        
+                        VStack(spacing: 8) {
+                            Button("Sync Templates") {
+                                workoutManager.requestUserTemplatesFromiPhone()
+                            }
+                            .buttonStyle(.borderedProminent)
+                            .controlSize(.small)
+                            
+                            Button("Test Connection") {
+                                workoutManager.syncWithiPhone()
+                            }
+                            .buttonStyle(.bordered)
+                            .controlSize(.small)
+                            
+                            Button("Add Test Templates") {
+                                workoutManager.addTestTemplates()
+                            }
+                            .buttonStyle(.bordered)
+                            .controlSize(.small)
+                        }
+                    }
+                    .padding()
+                } else {
+                    VStack(spacing: 12) {
+                        ForEach(workoutManager.userTemplates) { template in
+                            Button(action: {
+                                workoutManager.startWorkout(from: template)
+                                dismiss()
+                            }) {
+                                HStack {
+                                    VStack(alignment: .leading) {
+                                        Text(template.name)
+                                            .font(.headline)
+                                            .fontWeight(.medium)
+                                            .foregroundColor(.white)
+                                        
+                                        Text("\(template.exercises.count) exercises")
+                                            .font(.caption)
+                                            .foregroundColor(.secondary)
+                                    }
+                                    
+                                    Spacer()
+                                    
+                                    Image(systemName: "play.circle.fill")
+                                        .font(.title2)
+                                        .foregroundColor(.blue)
+                                }
+                                .padding()
+                                .background(Color.gray.opacity(0.3))
+                                .cornerRadius(12)
+                            }
+                            .buttonStyle(PlainButtonStyle())
+                        }
                     }
                 }
                 

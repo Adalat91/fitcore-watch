@@ -112,6 +112,38 @@ class DataManager {
         }
     }
     
+    // MARK: - User Templates
+    
+    func loadUserTemplates(completion: @escaping ([WorkoutTemplate]) -> Void) {
+        DispatchQueue.global(qos: .background).async {
+            let templates = self.loadUserTemplatesSync()
+            DispatchQueue.main.async {
+                completion(templates)
+            }
+        }
+    }
+    
+    private func loadUserTemplatesSync() -> [WorkoutTemplate] {
+        guard let data = userDefaults.data(forKey: "user_templates") else { return [] }
+        
+        do {
+            let templates = try JSONDecoder().decode([WorkoutTemplate].self, from: data)
+            return templates
+        } catch {
+            print("Error loading user templates: \(error)")
+            return []
+        }
+    }
+    
+    func saveUserTemplates(_ templates: [WorkoutTemplate]) {
+        do {
+            let data = try JSONEncoder().encode(templates)
+            userDefaults.set(data, forKey: "user_templates")
+        } catch {
+            print("Error saving user templates: \(error)")
+        }
+    }
+    
     // MARK: - Settings
     
     func saveSetting<T>(_ value: T, forKey key: String) {

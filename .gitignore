@@ -145,8 +145,6 @@ vendor/bundle
 
 # Documentation
 docs/
-*.md
-!README.md
 
 # Backup files
 *~

@@ -28,8 +28,9 @@ class WatchConnectivityManager: NSObject, ObservableObject {
     }
     
     func sendMessage(_ type: WatchMessageType, data: Data?) {
+        print("Attempting to send message type: \(type)")
         guard let session = session, session.isReachable else {
-            print("iPhone not reachable")
+            print("iPhone not reachable - session: \(session != nil), reachable: \(session?.isReachable ?? false)")
             delegate?.syncStatusChanged(false)
             return
         }
@@ -40,6 +41,7 @@ class WatchConnectivityManager: NSObject, ObservableObject {
             let messageData = try JSONEncoder().encode(message)
             let messageDict = ["message": messageData]
             
+            print("Sending message to iPhone: \(type)")
             session.sendMessage(messageDict, replyHandler: { response in
                 print("Message sent successfully: \(response)")
                 self.delegate?.syncStatusChanged(true)
@@ -82,10 +84,15 @@ extension WatchConnectivityManager: WCSessionDelegate {
     }
     
     func session(_ session: WCSession, didReceiveMessage message: [String : Any]) {
-        guard let messageData = message["message"] as? Data else { return }
+        print("Watch received message: \(message)")
+        guard let messageData = message["message"] as? Data else { 
+            print("No message data found")
+            return 
+        }
         
         do {
             let watchMessage = try JSONDecoder().decode(WatchMessage.self, from: messageData)
+            print("Decoded message type: \(watchMessage.type)")
             DispatchQueue.main.async {
                 self.delegate?.didReceiveMessage(watchMessage)
             }

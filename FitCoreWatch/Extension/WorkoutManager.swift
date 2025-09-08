@@ -28,6 +28,12 @@ class WorkoutManager: NSObject, ObservableObject {
         WorkoutTemplate.quickStartTemplates
     }
     
+    @Published var userTemplates: [WorkoutTemplate] = []
+    
+    var myTemplatesCount: Int {
+        userTemplates.count
+    }
+    
     var todayWorkoutCount: Int {
         let today = Calendar.current.startOfDay(for: Date())
         return workouts.filter { workout in
@@ -65,6 +71,7 @@ class WorkoutManager: NSObject, ObservableObject {
         setupWatchConnectivity()
         loadWorkouts()
         loadWorkoutStats()
+        loadUserTemplates()
     }
     
     // MARK: - Workout Management
@@ -222,6 +229,14 @@ class WorkoutManager: NSObject, ObservableObject {
         }
     }
     
+    private func loadUserTemplates() {
+        dataManager.loadUserTemplates { [weak self] templates in
+            DispatchQueue.main.async {
+                self?.userTemplates = templates
+            }
+        }
+    }
+    
     private func updateWorkoutStats(with workout: Workout) {
         workoutStats.totalWorkouts += 1
         
@@ -249,7 +264,53 @@ class WorkoutManager: NSObject, ObservableObject {
     }
     
     func syncWithiPhone() {
+        print("Starting sync with iPhone...")
         watchConnectivityManager.sendMessage(.syncData, data: nil)
+        // Also request user templates
+        requestUserTemplates()
+    }
+    
+    func requestUserTemplatesFromiPhone() {
+        print("Manually requesting user templates...")
+        requestUserTemplates()
+    }
+    
+    // Debug function to add test templates
+    func addTestTemplates() {
+        let testTemplates = [
+            WorkoutTemplate(
+                name: "Test Push Workout",
+                exercises: [
+                    Exercise(name: "Push-ups", category: "Chest", sets: [
+                        Set(weight: nil, reps: 15),
+                        Set(weight: nil, reps: 12),
+                        Set(weight: nil, reps: 10)
+                    ])
+                ],
+                category: "Upper Body",
+                difficulty: .beginner,
+                estimatedDuration: 600
+            ),
+            WorkoutTemplate(
+                name: "Test Pull Workout",
+                exercises: [
+                    Exercise(name: "Pull-ups", category: "Back", sets: [
+                        Set(weight: nil, reps: 8),
+                        Set(weight: nil, reps: 6),
+                        Set(weight: nil, reps: 4)
+                    ])
+                ],
+                category: "Upper Body",
+                difficulty: .intermediate,
+                estimatedDuration: 600
+            )
+        ]
+        
+        DispatchQueue.main.async {
+            self.userTemplates = testTemplates
+            self.dataManager.saveUserTemplates(testTemplates)
+            print("Added \(testTemplates.count) test templates")
+        }
     }
     
     // MARK: - Encoding/Decoding
@@ -285,9 +346,34 @@ extension WorkoutManager: WatchConnectivityDelegate {
                     self.healthMetrics = metrics
                 }
             }
+        case .requestData:
+            // Request user templates from iPhone
+            requestUserTemplates()
+        case .userTemplates:
+            print("Received user templates message")
+            if let data = message.data, let templates = try? JSONDecoder().decode([WorkoutTemplate].self, from: data) {
+                print("Successfully decoded \(templates.count) user templates")
+                DispatchQueue.main.async {
+                    self.userTemplates = templates
+                    // Save templates locally
+                    self.dataManager.saveUserTemplates(templates)
+                }
+            } else {
+                print("Failed to decode user templates")
+            }
         default:
             break
         }
+    }
+    
+    private func requestUserTemplates() {
+        print("Requesting user templates from iPhone...")
+        // Try both methods
+        watchConnectivityManager.sendMessage(.requestData, data: nil)
+        
+        // Also try UserInfo transfer as backup
+        let userInfo = ["request": "userTemplates", "timestamp": Date().timeIntervalSince1970] as [String : Any]
+        watchConnectivityManager.sendUserInfo(userInfo)
     }
     
     func syncStatusChanged(_ isSynced: Bool) {

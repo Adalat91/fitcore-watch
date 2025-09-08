@@ -201,6 +201,7 @@ enum WatchMessageType: String, Codable {
     case healthData = "health_data"
     case timerUpdate = "timer_update"
     case setCompleted = "set_completed"
+    case userTemplates = "user_templates"
 }
 
 struct WatchMessage: Codable {
