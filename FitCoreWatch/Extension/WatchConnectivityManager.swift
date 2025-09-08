@@ -3,6 +3,7 @@ import WatchConnectivity
 
 protocol WatchConnectivityDelegate: AnyObject {
     func didReceiveMessage(_ message: WatchMessage)
+    func syncStatusChanged(_ isSynced: Bool)
 }
 
 class WatchConnectivityManager: NSObject, ObservableObject {
@@ -29,6 +30,7 @@ class WatchConnectivityManager: NSObject, ObservableObject {
     func sendMessage(_ type: WatchMessageType, data: Data?) {
         guard let session = session, session.isReachable else {
             print("iPhone not reachable")
+            delegate?.syncStatusChanged(false)
             return
         }
         
@@ -40,11 +42,14 @@ class WatchConnectivityManager: NSObject, ObservableObject {
             
             session.sendMessage(messageDict, replyHandler: { response in
                 print("Message sent successfully: \(response)")
+                self.delegate?.syncStatusChanged(true)
             }, errorHandler: { error in
                 print("Error sending message: \(error)")
+                self.delegate?.syncStatusChanged(false)
             })
         } catch {
             print("Error encoding message: \(error)")
+            delegate?.syncStatusChanged(false)
         }
     }
     
@@ -101,6 +106,7 @@ extension WatchConnectivityManager: WCSessionDelegate {
     
     func sessionReachabilityDidChange(_ session: WCSession) {
         print("Session reachability changed: \(session.isReachable)")
+        delegate?.syncStatusChanged(session.isReachable)
     }
 }
 

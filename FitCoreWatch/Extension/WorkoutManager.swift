@@ -10,6 +10,7 @@ class WorkoutManager: NSObject, ObservableObject {
     @Published var isWorkoutActive = false
     @Published var healthMetrics = HealthMetrics()
     @Published var workoutStats = WorkoutStats()
+    @Published var isSynced = false // Sync status with iPhone
     
     private let dataManager = DataManager()
     private let healthKitManager = HealthKitManager()
@@ -287,6 +288,10 @@ extension WorkoutManager: WatchConnectivityDelegate {
         default:
             break
         }
+    }
+    
+    func syncStatusChanged(_ isSynced: Bool) {
+        self.isSynced = isSynced
     }
 }
 

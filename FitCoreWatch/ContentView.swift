@@ -2,13 +2,30 @@ import SwiftUI
 
 struct ContentView: View {
     @StateObject private var workoutManager = WorkoutManager()
+    @State private var selectedTab = 0
     
     var body: some View {
-        HomeView()
-            .environmentObject(workoutManager)
-            .onAppear {
-                workoutManager.requestHealthKitPermissions()
-            }
+        TabView(selection: $selectedTab) {
+            // Workout Tab
+            HomeView()
+                .tabItem {
+                    Image(systemName: "dumbbell.fill")
+                    Text("Workout")
+                }
+                .tag(0)
+            
+            // Profile Tab
+            ProfileView()
+                .tabItem {
+                    Image(systemName: "person.fill")
+                    Text("Profile")
+                }
+                .tag(1)
+        }
+        .environmentObject(workoutManager)
+        .onAppear {
+            workoutManager.requestHealthKitPermissions()
+        }
     }
 }
 
@@ -16,7 +33,7 @@ struct HomeView: View {
     @EnvironmentObject var workoutManager: WorkoutManager
     @State private var showingQuickStart = false
     @State private var showingTemplates = false
-    @State private var isSynced = true // Sync status
+    @State private var isSyncing = false
     
     var body: some View {
         NavigationView {
@@ -24,10 +41,25 @@ struct HomeView: View {
                 // Header Section
                 VStack(spacing: 16) {
                     HStack {
-                        // Sync icon with status color
-                        Image(systemName: "arrow.clockwise")
-                            .font(.caption2)
-                            .foregroundColor(isSynced ? .green : .red)
+                        // Sync icon with status color - tappable
+                        Button(action: {
+                            // Manual sync action
+                            isSyncing = true
+                            workoutManager.syncWithiPhone()
+                            
+                            // Reset syncing state after a brief delay
+                            DispatchQueue.main.asyncAfter(deadline: .now() + 1.0) {
+                                isSyncing = false
+                            }
+                        }) {
+                            Image(systemName: isSyncing ? "arrow.triangle.2.circlepath" : "arrow.triangle.2.circlepath")
+                                .font(.caption2)
+                                .foregroundColor(isSyncing ? .blue : (workoutManager.isSynced ? .green : .red))
+                                .rotationEffect(.degrees(isSyncing ? 360 : 0))
+                                .animation(isSyncing ? .linear(duration: 1.0).repeatForever(autoreverses: false) : .default, value: isSyncing)
+                        }
+                        .buttonStyle(PlainButtonStyle())
+                        .disabled(isSyncing)
                         
                         Spacer()
                         
@@ -115,21 +147,19 @@ struct HomeView: View {
                 }
                 .padding(.horizontal, 16)
                 .padding(.bottom, 8)
-                
-                // Page Indicators
-                HStack(spacing: 4) {
-                    Circle()
-                        .fill(Color.white)
-                        .frame(width: 6, height: 6)
-                    
-                    Circle()
-                        .fill(Color.white.opacity(0.3))
-                        .frame(width: 6, height: 6)
-                }
-                .padding(.bottom, 8)
             }
             .background(Color.black)
             .navigationBarHidden(true)
+            .onAppear {
+                // Auto-sync when landing on this screen
+                isSyncing = true
+                workoutManager.syncWithiPhone()
+                
+                // Reset syncing state after a brief delay
+                DispatchQueue.main.asyncAfter(deadline: .now() + 1.0) {
+                    isSyncing = false
+                }
+            }
             .sheet(isPresented: $showingQuickStart) {
                 QuickStartView()
             }
