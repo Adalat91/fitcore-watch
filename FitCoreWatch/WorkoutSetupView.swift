@@ -215,12 +215,6 @@ struct SessionInfoView: View {
                         Text(startedText)
                             .foregroundColor(.secondary)
                     }
-                    HStack {
-                        Text("Elapsed")
-                        Spacer()
-                        Text(elapsedText)
-                            .foregroundColor(.secondary)
-                    }
                 }
                 Section("Options") {
                     HStack { Text("Warmup"); Spacer(); Text(workoutManager.includeWarmupSession ? "On" : "Off").foregroundColor(.secondary) }
@@ -242,12 +236,7 @@ struct SessionInfoView: View {
         if let start = workoutManager.activeStartDate { return start.formatted(date: .abbreviated, time: .shortened) }
         return "—"
     }
-    private var elapsedText: String {
-        guard let start = workoutManager.activeStartDate else { return "—" }
-        let secs = Int(Date().timeIntervalSince(start))
-        let m = secs / 60, s = secs % 60
-        return String(format: "%d:%02d", m, s)
-    }
+    private var elapsedText: String { "" }
 }
 
 #Preview {

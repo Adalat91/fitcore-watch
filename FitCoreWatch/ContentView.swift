@@ -131,23 +131,19 @@ struct HomeView: View {
                             }
                             navPath.append(HomeRoute.setup)
                         }) {
-                            HStack {
-                                Text("Start")
-                                    .font(.subheadline)
-                                    .lineLimit(1)
-                                    .minimumScaleFactor(0.8)
-                                Spacer()
-                                Image(systemName: "play.fill")
-                                    .font(.caption)
-                            }
-                            .padding(8)
-                            .frame(maxWidth: .infinity)
-                            .background(Color.green.opacity(0.25))
-                            .overlay(
-                                RoundedRectangle(cornerRadius: 12)
-                                    .stroke(Color.green, lineWidth: 1)
-                            )
-                            .cornerRadius(12)
+                            Text("Start")
+                                .font(.subheadline)
+                                .fontWeight(.bold)
+                                .lineLimit(1)
+                                .minimumScaleFactor(0.8)
+                                .frame(maxWidth: .infinity, alignment: .center)
+                                .padding(8)
+                                .background(Color.green.opacity(0.25))
+                                .overlay(
+                                    RoundedRectangle(cornerRadius: 12)
+                                        .stroke(Color.green, lineWidth: 1)
+                                )
+                                .cornerRadius(12)
                         }
                         .buttonStyle(.plain)
                     }
