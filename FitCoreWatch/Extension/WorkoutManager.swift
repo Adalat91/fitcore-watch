@@ -443,6 +443,22 @@ class WorkoutManager: NSObject, ObservableObject {
         }
     }
     
+    func removeSet(exerciseId: UUID, setIndex: Int) {
+        if var workout = currentWorkout,
+           let exerciseIndex = workout.exercises.firstIndex(where: { $0.id == exerciseId }),
+           exerciseIndex < workout.exercises.count,
+           setIndex < workout.exercises[exerciseIndex].sets.count {
+            workout.exercises[exerciseIndex].sets.remove(at: setIndex)
+            currentWorkout = workout
+            saveWorkout(workout)
+        } else if let exerciseIndex = draftExercises.firstIndex(where: { $0.id == exerciseId }),
+                  exerciseIndex < draftExercises.count,
+                  setIndex < draftExercises[exerciseIndex].sets.count {
+            draftExercises[exerciseIndex].sets.remove(at: setIndex)
+        }
+    }
+    
+    
     // MARK: - Health Kit
     
     func requestHealthKitPermissions() {

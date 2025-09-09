@@ -31,247 +31,288 @@ struct WorkoutSetupView: View {
     @State private var selectedRestExerciseId: UUID? = nil
     @State private var selectedRestAfterSetIndex: Int? = nil
     @State private var editingActiveRest: Bool = false
+    @State private var showDeleteSetConfirm: Bool = false
     
     var body: some View {
         NavigationView {
-            ScrollView {
-                VStack(spacing: 12) {
-                    headerSection()
-                    optionsSection()
-                    workoutSection()
-                    
-                    // Primary action: Finish
-                    Button {
-                        if workoutManager.isWorkoutActive {
-                            workoutManager.completeWorkout()
-                        } else {
-                            // Clear any pre-workout session so timer doesn't persist across relaunch
-                            workoutManager.clearPreWorkoutSession()
-                        }
-                        dismiss()
-                    } label: {
-                        Text("Finish")
-                            .fontWeight(.semibold)
-                            .frame(maxWidth: .infinity)
-                    }
-                    .buttonStyle(.borderedProminent)
-                    .tint(.green)
-                    .controlSize(.small)
-                    
-                    // Danger/secondary
-                    Button(role: .destructive) {
-                        showCancelConfirm = true
-                    } label: {
-                        Text("Cancel Workout")
-                            .frame(maxWidth: .infinity)
-                    }
-                    .buttonStyle(.bordered)
-                    .controlSize(.small)
-                    .padding(.top, 6)
-                    .confirmationDialog("Cancel this workout?", isPresented: $showCancelConfirm, titleVisibility: .visible) {
-                        Button("Cancel Workout", role: .destructive) {
-                            // Only clear the pre-workout session if a real workout hasn't started
-                            if !workoutManager.isWorkoutActive {
-                                workoutManager.clearPreWorkoutSession()
-                            }
-                            dismiss()
-                        }
-                        Button("Keep Editing", role: .cancel) {}
-                    }
-                    
-                    Spacer(minLength: 4)
+            mainContentView
+        }
+    }
+    
+    // MARK: - Main Content
+    @ViewBuilder private var mainContentView: some View {
+        ScrollView {
+            VStack(spacing: 12) {
+                headerSection()
+                optionsSection()
+                workoutSection()
+                actionButtonsSection()
+                Spacer(minLength: 4)
+            }
+            .padding()
+        }
+        .navigationTitle(workoutManager.formattedActiveElapsed)
+        .navigationBarTitleDisplayMode(.inline)
+        .sheet(isPresented: $showingAddExercises) {
+            ExercisesView()
+                .environmentObject(workoutManager)
+        }
+        .sheet(isPresented: $showEditSheet) {
+            editSetSheet
+        }
+        .sheet(isPresented: $showRestEditor) {
+            restEditorSheet
+        }
+        .sheet(isPresented: $showingInfo) {
+            SessionInfoView()
+                .environmentObject(workoutManager)
+        }
+        .onAppear {
+            initializeSession()
+        }
+        .onDisappear {
+            timerManager.stopWorkoutTimer()
+        }
+        .onChange(of: workoutManager.isSessionPaused) { paused in
+            handlePauseStateChange(paused)
+        }
+    }
+    
+    // MARK: - Action Buttons Section
+    @ViewBuilder private func actionButtonsSection() -> some View {
+        VStack(spacing: 6) {
+            // Primary action: Finish
+            Button {
+                handleFinishAction()
+            } label: {
+                Text("Finish")
+                    .fontWeight(.semibold)
+                    .frame(maxWidth: .infinity)
+            }
+            .buttonStyle(.borderedProminent)
+            .tint(.green)
+            .controlSize(.small)
+            
+            // Danger/secondary
+            Button(role: .destructive) {
+                showCancelConfirm = true
+            } label: {
+                Text("Cancel Workout")
+                    .frame(maxWidth: .infinity)
+            }
+            .buttonStyle(.bordered)
+            .controlSize(.small)
+            .confirmationDialog("Cancel this workout?", isPresented: $showCancelConfirm, titleVisibility: .visible) {
+                Button("Cancel Workout", role: .destructive) {
+                    handleCancelAction()
                 }
-                .padding()
+                Button("Keep Editing", role: .cancel) {}
             }
-            .navigationTitle(workoutManager.formattedActiveElapsed)
-            .navigationBarTitleDisplayMode(.inline)
-            .sheet(isPresented: $showingAddExercises) {
-                ExercisesView()
-                    .environmentObject(workoutManager)
+        }
+    }
+    
+    // MARK: - Edit Set Sheet
+    @ViewBuilder private var editSetSheet: some View {
+        VStack(spacing: 8) {
+            Text("Edit Set")
+                .font(.subheadline)
+                .fontWeight(.semibold)
+            
+            weightControlRow
+            repsControlRow
+            editSetActionsRow
+        }
+        .padding(10)
+    }
+    
+    @ViewBuilder private var weightControlRow: some View {
+        HStack(spacing: 6) {
+            Button { 
+                if let w = tempWeight { 
+                    tempWeight = max(0, w - 2.5) 
+                } else { 
+                    tempWeight = 0 
+                } 
+            } label: { 
+                Image(systemName: "minus") 
             }
-            .sheet(isPresented: $showEditSheet) {
-                VStack(spacing: 8) {
-                    // Title
-                    Text("Edit Set")
-                        .font(.subheadline)
-                        .fontWeight(.semibold)
-                    // Exercise weight row (compact, non-truncating)
-                    HStack(spacing: 6) {
-                        Button { if let w = tempWeight { tempWeight = max(0, w - 2.5) } else { tempWeight = 0 } } label: { Image(systemName: "minus") }
-                            .buttonStyle(.bordered)
-                            .controlSize(.mini)
-                        Spacer(minLength: 4)
-                        Text(weightString(tempWeight))
-                            .font(.callout)
-                            .monospacedDigit()
-                            .lineLimit(1)
-                            .minimumScaleFactor(0.8)
-                        Text("+LBS")
-                            .font(.caption2)
-                            .foregroundColor(.secondary)
-                            .lineLimit(1)
-                            .minimumScaleFactor(0.6)
-                            .layoutPriority(2)
-                        Spacer(minLength: 4)
-                        Button { tempWeight = (tempWeight ?? 0) + 2.5 } label: { Image(systemName: "plus") }
-                            .buttonStyle(.bordered)
-                            .controlSize(.mini)
-                    }
-                    .padding(.horizontal, 8)
-                    .padding(.vertical, 6)
-                    .frame(height: 32)
-                    .background(Color.gray.opacity(0.2))
-                    .cornerRadius(8)
-                    // Reps row (compact, non-truncating)
-                    HStack(spacing: 6) {
-                        Button { tempReps = max(1, tempReps - 1) } label: { Image(systemName: "minus") }
-                            .buttonStyle(.bordered)
-                            .controlSize(.mini)
-                        Spacer(minLength: 4)
-                        Text("\(tempReps)")
-                            .font(.callout)
-                            .monospacedDigit()
-                            .lineLimit(1)
-                            .minimumScaleFactor(0.8)
-                        Text("REPS")
-                            .font(.caption2)
-                            .foregroundColor(.secondary)
-                            .lineLimit(1)
-                            .minimumScaleFactor(0.6)
-                            .layoutPriority(2)
-                        Spacer(minLength: 4)
-                        Button { tempReps += 1 } label: { Image(systemName: "plus") }
-                            .buttonStyle(.bordered)
-                            .controlSize(.mini)
-                    }
-                    .padding(.horizontal, 8)
-                    .padding(.vertical, 6)
-                    .frame(height: 32)
-                    .background(Color.gray.opacity(0.2))
-                    .cornerRadius(8)
-                    // Preview and actions (compact)
-                    HStack(spacing: 8) {
-                        Text("Next:")
-                            .font(.caption2)
-                            .foregroundColor(.secondary)
-                        Text("+\(weightString(tempWeight)) lb × \(tempReps)")
-                            .font(.caption2)
-                            .lineLimit(1)
-                            .minimumScaleFactor(0.8)
-                        Spacer()
-                        Button {
-                            if let eId = editingExerciseId {
-                                let wDouble = tempWeight
-                                workoutManager.updateSet(exerciseId: eId, setIndex: editingSetIndex, weight: wDouble, reps: tempReps)
-                                withAnimation(.easeInOut(duration: 0.2)) {
-                                    workoutManager.completeSetByIndex(exerciseId: eId, setIndex: editingSetIndex)
-                                }
-                                // If rest timers are enabled, start a rest timer after completing a set
-                                if workoutManager.restTimersEnabled {
-                                    // Use the set's configured rest time (fallback to default)
-                                    var restDuration = AppConstants.Timer.defaultRestTime
-                                    if let ex = exerciseList.first(where: { $0.id == eId }), ex.sets.indices.contains(editingSetIndex) {
-                                        restDuration = ex.sets[editingSetIndex].restTime
-                                    }
-                                    workoutManager.startRest(exerciseId: eId, afterSetIndex: editingSetIndex, duration: restDuration)
-                                    // Mirror to local state for immediate UI update
-                                    activeRestExerciseId = workoutManager.activeRestExerciseId
-                                    activeRestAfterSetIndex = workoutManager.activeRestAfterSetIndex
-                                }
-                            }
-                            showEditSheet = false
-                        } label: {
-                            Image(systemName: "checkmark")
-                                .foregroundColor(.white)
-                                .frame(width: 24, height: 24)
-                                .background(Color.green)
-                                .clipShape(Circle())
-                        }
-                    }
+            .buttonStyle(.bordered)
+            .controlSize(.mini)
+            
+            Spacer(minLength: 4)
+            
+            Text(weightString(tempWeight))
+                .font(.callout)
+                .monospacedDigit()
+                .lineLimit(1)
+                .minimumScaleFactor(0.8)
+            
+            Text("+LBS")
+                .font(.caption2)
+                .foregroundColor(.secondary)
+                .lineLimit(1)
+                .minimumScaleFactor(0.6)
+                .layoutPriority(2)
+            
+            Spacer(minLength: 4)
+            
+            Button { 
+                tempWeight = (tempWeight ?? 0) + 2.5 
+            } label: { 
+                Image(systemName: "plus") 
+            }
+            .buttonStyle(.bordered)
+            .controlSize(.mini)
+        }
+        .padding(.horizontal, 8)
+        .padding(.vertical, 6)
+        .frame(height: 32)
+        .background(Color.gray.opacity(0.2))
+        .cornerRadius(8)
+    }
+    
+    @ViewBuilder private var repsControlRow: some View {
+        HStack(spacing: 6) {
+            Button { 
+                tempReps = max(1, tempReps - 1) 
+            } label: { 
+                Image(systemName: "minus") 
+            }
+            .buttonStyle(.bordered)
+            .controlSize(.mini)
+            
+            Spacer(minLength: 4)
+            
+            Text("\(tempReps)")
+                .font(.callout)
+                .monospacedDigit()
+                .lineLimit(1)
+                .minimumScaleFactor(0.8)
+            
+            Text("REPS")
+                .font(.caption2)
+                .foregroundColor(.secondary)
+                .lineLimit(1)
+                .minimumScaleFactor(0.6)
+                .layoutPriority(2)
+            
+            Spacer(minLength: 4)
+            
+            Button { 
+                tempReps += 1 
+            } label: { 
+                Image(systemName: "plus") 
+            }
+            .buttonStyle(.bordered)
+            .controlSize(.mini)
+        }
+        .padding(.horizontal, 8)
+        .padding(.vertical, 6)
+        .frame(height: 32)
+        .background(Color.gray.opacity(0.2))
+        .cornerRadius(8)
+    }
+    
+    @ViewBuilder private var editSetActionsRow: some View {
+        HStack(spacing: 8) {
+            Button(role: .destructive) {
+                showDeleteSetConfirm = true
+            } label: {
+                Text("Delete")
+            }
+            .buttonStyle(.bordered)
+            .controlSize(.mini)
+            .confirmationDialog("Delete this set?", isPresented: $showDeleteSetConfirm, titleVisibility: .visible) {
+                Button("Delete Set", role: .destructive) {
+                    handleDeleteSet()
                 }
-                .padding(10)
+                Button("Cancel", role: .cancel) {}
             }
-            // Rest editor sheet
-            .sheet(isPresented: $showRestEditor) {
-                VStack(spacing: 10) {
-                    HStack {
-                        Text("Edit Rest")
-                            .font(.subheadline)
-                            .fontWeight(.semibold)
-                        Spacer()
-                        Button("Set All") {
-                            workoutManager.updateAllRestTimes(restSeconds: tempRestSeconds)
-                            showRestEditor = false
-                        }
-                        .buttonStyle(.bordered)
-                        .controlSize(.mini)
-                        .font(.caption2)
-                    }
-                    HStack(spacing: 12) {
-                        Button { tempRestSeconds = max(15, tempRestSeconds - 15) } label: { Image(systemName: "minus") }
-                            .buttonStyle(.bordered)
-                            .controlSize(.mini)
-                        Text(formattedSeconds(tempRestSeconds))
-                            .font(.title3)
-                            .monospacedDigit()
-                        Button { tempRestSeconds = min(600, tempRestSeconds + 15) } label: { Image(systemName: "plus") }
-                            .buttonStyle(.bordered)
-                            .controlSize(.mini)
-                    }
-                    HStack(spacing: 8) {
-                        Button("Reset") { tempRestSeconds = Int(AppConstants.Timer.defaultRestTime) }
-                            .buttonStyle(.bordered)
-                            .controlSize(.small)
-                        Button("Skip", role: .destructive) {
-                            workoutManager.restTimerManager.skipTimer()
-                            showRestEditor = false
-                        }
-                        .buttonStyle(.bordered)
-                        .controlSize(.small)
-                        Spacer()
-                        Button("Save") {
-                            if let eId = selectedRestExerciseId, let idx = selectedRestAfterSetIndex {
-                                if editingActiveRest {
-                                    // Restart active rest with new duration
-                                    workoutManager.startRest(exerciseId: eId, afterSetIndex: idx, duration: TimeInterval(tempRestSeconds))
-                                } else {
-                                    // Update per-set rest time without starting timer
-                                    workoutManager.updateSetRestTime(exerciseId: eId, setIndex: idx, restSeconds: tempRestSeconds)
-                                }
-                            }
-                            showRestEditor = false
-                        }
-                        .buttonStyle(.borderedProminent)
-                        .controlSize(.small)
-                    }
+            
+            Spacer()
+            
+            Button {
+                handleSaveSet()
+            } label: {
+                Image(systemName: "checkmark")
+                    .foregroundColor(.white)
+                    .frame(width: 24, height: 24)
+                    .background(Color.green)
+                    .clipShape(Circle())
+            }
+        }
+    }
+    
+    // MARK: - Rest Editor Sheet
+    @ViewBuilder private var restEditorSheet: some View {
+        VStack(spacing: 10) {
+            HStack {
+                Text("Edit Rest")
+                    .font(.subheadline)
+                    .fontWeight(.semibold)
+                Spacer()
+                Button("Set All") {
+                    workoutManager.updateAllRestTimes(restSeconds: tempRestSeconds)
+                    showRestEditor = false
                 }
-                .padding(10)
+                .buttonStyle(.bordered)
+                .controlSize(.mini)
+                .font(.caption2)
             }
-            .sheet(isPresented: $showingInfo) {
-                SessionInfoView()
-                    .environmentObject(workoutManager)
+            
+            restTimeControlRow
+            
+            restEditorActionsRow
+        }
+        .padding(10)
+    }
+    
+    @ViewBuilder private var restTimeControlRow: some View {
+        HStack(spacing: 12) {
+            Button { 
+                tempRestSeconds = max(15, tempRestSeconds - 15) 
+            } label: { 
+                Image(systemName: "minus") 
             }
-            .onAppear {
-                // Initialize a session timer if one isn't already running
-                if workoutManager.sessionStartDate == nil {
-                    workoutManager.sessionStartDate = Date()
-                }
-                timerManager.startWorkoutTimer(from: workoutManager.sessionStartDate)
-                // Align local pause state with global state
-                isPaused = workoutManager.isSessionPaused
-                if isPaused { timerManager.pauseWorkoutTimer() }
+            .buttonStyle(.bordered)
+            .controlSize(.mini)
+            
+            Text(formattedSeconds(tempRestSeconds))
+                .font(.title3)
+                .monospacedDigit()
+            
+            Button { 
+                tempRestSeconds = min(600, tempRestSeconds + 15) 
+            } label: { 
+                Image(systemName: "plus") 
             }
-            .onDisappear {
-                timerManager.stopWorkoutTimer()
+            .buttonStyle(.bordered)
+            .controlSize(.mini)
+        }
+    }
+    
+    @ViewBuilder private var restEditorActionsRow: some View {
+        HStack(spacing: 8) {
+            Button("Reset") { 
+                tempRestSeconds = Int(AppConstants.Timer.defaultRestTime) 
             }
-            .onChange(of: workoutManager.isSessionPaused) { paused in
-                isPaused = paused
-                if paused {
-                    timerManager.pauseWorkoutTimer()
-                } else {
-                    timerManager.resumeWorkoutTimer()
-                }
+            .buttonStyle(.bordered)
+            .controlSize(.small)
+            
+            Button("Skip", role: .destructive) {
+                workoutManager.restTimerManager.skipTimer()
+                showRestEditor = false
             }
+            .buttonStyle(.bordered)
+            .controlSize(.small)
+            
+            Spacer()
+            
+            Button("Save") {
+                handleSaveRest()
+            }
+            .buttonStyle(.borderedProminent)
+            .controlSize(.small)
         }
     }
     
@@ -431,6 +472,82 @@ struct WorkoutSetupView: View {
         guard let v = value else { return "0" }
         if v.truncatingRemainder(dividingBy: 1) == 0 { return String(Int(v)) }
         return String(format: "%.1f", v)
+    }
+    
+    // MARK: - Helper Methods
+    private func initializeSession() {
+        if workoutManager.sessionStartDate == nil {
+            workoutManager.sessionStartDate = Date()
+        }
+        timerManager.startWorkoutTimer(from: workoutManager.sessionStartDate)
+        isPaused = workoutManager.isSessionPaused
+        if isPaused { 
+            timerManager.pauseWorkoutTimer() 
+        }
+    }
+    
+    private func handlePauseStateChange(_ paused: Bool) {
+        isPaused = paused
+        if paused {
+            timerManager.pauseWorkoutTimer()
+        } else {
+            timerManager.resumeWorkoutTimer()
+        }
+    }
+    
+    private func handleFinishAction() {
+        if workoutManager.isWorkoutActive {
+            workoutManager.completeWorkout()
+        } else {
+            workoutManager.clearPreWorkoutSession()
+        }
+        dismiss()
+    }
+    
+    private func handleCancelAction() {
+        if !workoutManager.isWorkoutActive {
+            workoutManager.clearPreWorkoutSession()
+        }
+        dismiss()
+    }
+    
+    private func handleDeleteSet() {
+        if let eId = editingExerciseId {
+            workoutManager.removeSet(exerciseId: eId, setIndex: editingSetIndex)
+        }
+        showEditSheet = false
+    }
+    
+    private func handleSaveSet() {
+        if let eId = editingExerciseId {
+            let wDouble = tempWeight
+            workoutManager.updateSet(exerciseId: eId, setIndex: editingSetIndex, weight: wDouble, reps: tempReps)
+            withAnimation(.easeInOut(duration: 0.2)) {
+                workoutManager.completeSetByIndex(exerciseId: eId, setIndex: editingSetIndex)
+            }
+            
+            if workoutManager.restTimersEnabled {
+                var restDuration = AppConstants.Timer.defaultRestTime
+                if let ex = exerciseList.first(where: { $0.id == eId }), ex.sets.indices.contains(editingSetIndex) {
+                    restDuration = ex.sets[editingSetIndex].restTime
+                }
+                workoutManager.startRest(exerciseId: eId, afterSetIndex: editingSetIndex, duration: restDuration)
+                activeRestExerciseId = workoutManager.activeRestExerciseId
+                activeRestAfterSetIndex = workoutManager.activeRestAfterSetIndex
+            }
+        }
+        showEditSheet = false
+    }
+    
+    private func handleSaveRest() {
+        if let eId = selectedRestExerciseId, let idx = selectedRestAfterSetIndex {
+            if editingActiveRest {
+                workoutManager.startRest(exerciseId: eId, afterSetIndex: idx, duration: TimeInterval(tempRestSeconds))
+            } else {
+                workoutManager.updateSetRestTime(exerciseId: eId, setIndex: idx, restSeconds: tempRestSeconds)
+            }
+        }
+        showRestEditor = false
     }
 
 }
