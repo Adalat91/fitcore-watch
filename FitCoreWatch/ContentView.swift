@@ -521,59 +521,28 @@ struct TemplatesView: View {
     var body: some View {
         NavigationView {
             VStack(spacing: 16) {
+                // Header
                 Text("Example Templates")
-                    .font(.title2)
+                    .font(.headline)
                     .fontWeight(.semibold)
-                    .foregroundColor(.white)
                 
-                Text("Choose from pre-built workout templates")
-                    .font(.subheadline)
-                    .foregroundColor(.secondary)
-                    .multilineTextAlignment(.center)
-                
-                VStack(spacing: 12) {
-                    ForEach(workoutManager.quickStartTemplates) { template in
-                        Button(action: {
-                            workoutManager.startWorkout(from: template)
-                            dismiss()
-                        }) {
-                            HStack {
-                                VStack(alignment: .leading) {
-                                    Text(template.name)
-                                        .font(.headline)
-                                        .fontWeight(.medium)
-                                        .foregroundColor(.white)
-                                    
-                                    Text("\(template.exercises.count) exercises")
-                                        .font(.caption)
-                                        .foregroundColor(.secondary)
-                                }
-                                
-                                Spacer()
-                                
-                                Image(systemName: "play.circle.fill")
-                                    .font(.title2)
-                                    .foregroundColor(.blue)
-                            }
-                            .padding()
-                            .background(Color.gray.opacity(0.3))
-                            .cornerRadius(12)
-                        }
-                        .buttonStyle(PlainButtonStyle())
-                    }
+                // For now, we intentionally hide example templates and show a clean placeholder
+                VStack(spacing: 10) {
+                    Image(systemName: "rectangle.on.rectangle")
+                        .font(.title)
+                        .foregroundColor(.secondary)
+                    Text("Example templates will be available here.")
+                        .font(.caption)
+                        .foregroundColor(.secondary)
+                        .multilineTextAlignment(.center)
                 }
-                
-                Spacer()
+                Spacer(minLength: 0)
             }
             .padding()
-            .background(Color.black)
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
-                    Button("Cancel") {
-                        dismiss()
-                    }
-                    .foregroundColor(.white)
+                    Button("Close") { dismiss() }
                 }
             }
         }
@@ -587,92 +556,63 @@ struct MyTemplatesView: View {
     var body: some View {
         NavigationView {
             VStack(spacing: 16) {
+                // Header
                 Text("My Templates")
-                    .font(.title2)
+                    .font(.headline)
                     .fontWeight(.semibold)
-                    .foregroundColor(.white)
                 
                 if workoutManager.userTemplates.isEmpty {
-                    VStack(spacing: 12) {
+                    // Clean empty state
+                    VStack(spacing: 10) {
                         Image(systemName: "folder")
-                            .font(.largeTitle)
+                            .font(.title)
                             .foregroundColor(.secondary)
-                        
-                        Text("No Custom Templates")
-                            .font(.headline)
-                            .foregroundColor(.white)
-                        
-                        Text("Create templates in the main app to see them here")
-                            .font(.subheadline)
+                        Text("Your templates will appear here once synced from the FitCore app.")
+                            .font(.caption)
                             .foregroundColor(.secondary)
                             .multilineTextAlignment(.center)
-                        
-                        VStack(spacing: 8) {
-                            Button("Sync Templates") {
-                                workoutManager.requestUserTemplatesFromiPhone()
-                            }
-                            .buttonStyle(.borderedProminent)
-                            .controlSize(.small)
-                            
-                            Button("Test Connection") {
-                                workoutManager.syncWithiPhone()
-                            }
-                            .buttonStyle(.bordered)
-                            .controlSize(.small)
-                            
-                            Button("Add Test Templates") {
-                                workoutManager.addTestTemplates()
-                            }
-                            .buttonStyle(.bordered)
-                            .controlSize(.small)
+                            .padding(.horizontal)
+                        Button("Sync Templates") {
+                            workoutManager.requestUserTemplatesFromiPhone()
                         }
+                        .buttonStyle(.borderedProminent)
+                        .controlSize(.small)
                     }
-                    .padding()
                 } else {
-                    VStack(spacing: 12) {
+                    // Minimal list of templates
+                    List {
                         ForEach(workoutManager.userTemplates) { template in
                             Button(action: {
                                 workoutManager.startWorkout(from: template)
                                 dismiss()
                             }) {
                                 HStack {
-                                    VStack(alignment: .leading) {
+                                    VStack(alignment: .leading, spacing: 2) {
                                         Text(template.name)
-                                            .font(.headline)
+                                            .font(.subheadline)
                                             .fontWeight(.medium)
-                                            .foregroundColor(.white)
-                                        
                                         Text("\(template.exercises.count) exercises")
-                                            .font(.caption)
+                                            .font(.caption2)
                                             .foregroundColor(.secondary)
                                     }
-                                    
                                     Spacer()
-                                    
                                     Image(systemName: "play.circle.fill")
-                                        .font(.title2)
                                         .foregroundColor(.blue)
                                 }
-                                .padding()
-                                .background(Color.gray.opacity(0.3))
-                                .cornerRadius(12)
+                                .padding(.vertical, 6)
                             }
-                            .buttonStyle(PlainButtonStyle())
+                            .buttonStyle(.plain)
                         }
                     }
+                    .listStyle(.plain)
                 }
-                
-                Spacer()
+                Spacer(minLength: 0)
             }
             .padding()
-            .background(Color.black)
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
-                    Button("Cancel") {
-                        dismiss()
-                    }
-                    .foregroundColor(.white)
+                    Button("Close") { dismiss() }
                 }
             }
         }
