@@ -5,6 +5,7 @@ struct WorkoutSetupView: View {
     @EnvironmentObject var workoutManager: WorkoutManager
     @StateObject private var timerManager = TimerManager()
     
+    // Use manager's source of truth for rest timers
     @State private var restTimersEnabled = true
     @State private var soundEnabled = true
     
@@ -43,7 +44,7 @@ struct WorkoutSetupView: View {
                                 .foregroundColor(.blue)
                         }
                         Spacer()
-                        Toggle("Rest Timers", isOn: $restTimersEnabled)
+                        Toggle("Rest Timers", isOn: $workoutManager.restTimersEnabled)
                             .labelsHidden()
                     }
                     .padding()
@@ -105,16 +106,18 @@ struct WorkoutSetupView: View {
                                     .background(Color.white.opacity(0.08))
                                     .cornerRadius(10)
                                 }
-                                HStack {
-                                    Image(systemName: "timer")
-                                        .font(.caption2)
-                                    Spacer()
-                                    Text("2:00")
-                                        .font(.caption2)
+                                if workoutManager.restTimersEnabled {
+                                    HStack {
+                                        Image(systemName: "timer")
+                                            .font(.caption2)
+                                        Spacer()
+                                        Text("2:00")
+                                            .font(.caption2)
+                                    }
+                                    .padding(8)
+                                    .background(Color.white.opacity(0.08))
+                                    .cornerRadius(10)
                                 }
-                                .padding(8)
-                                .background(Color.white.opacity(0.08))
-                                .cornerRadius(10)
                                 if sets.indices.contains(1) {
                                     HStack {
                                         Text("2")
@@ -127,16 +130,18 @@ struct WorkoutSetupView: View {
                                     .background(Color.white.opacity(0.08))
                                     .cornerRadius(10)
                                 }
-                                HStack {
-                                    Image(systemName: "timer")
-                                        .font(.caption2)
-                                    Spacer()
-                                    Text("2:00")
-                                        .font(.caption2)
+                                if workoutManager.restTimersEnabled {
+                                    HStack {
+                                        Image(systemName: "timer")
+                                            .font(.caption2)
+                                        Spacer()
+                                        Text("2:00")
+                                            .font(.caption2)
+                                    }
+                                    .padding(8)
+                                    .background(Color.white.opacity(0.08))
+                                    .cornerRadius(10)
                                 }
-                                .padding(8)
-                                .background(Color.white.opacity(0.08))
-                                .cornerRadius(10)
                             }
                         }
                     }
@@ -151,11 +156,11 @@ struct WorkoutSetupView: View {
                             Spacer()
                             Image(systemName: "plus")
                                 .font(.body)
-                                .foregroundColor(.accentColor)
+                                .foregroundColor(.purple)
                         }
                         .padding()
                         .frame(maxWidth: .infinity)
-                        .background(Color.gray.opacity(0.2))
+                        .background(Color.purple.opacity(0.25))
                         .cornerRadius(12)
                     }
                     .buttonStyle(.plain)
@@ -176,7 +181,7 @@ struct WorkoutSetupView: View {
                         .frame(maxWidth: .infinity)
                 }
                 .buttonStyle(.borderedProminent)
-                .tint(.orange)
+                .tint(.green)
                 .controlSize(.small)
 
                 // Danger/secondary
