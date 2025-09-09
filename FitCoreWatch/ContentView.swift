@@ -205,8 +205,7 @@ struct HomeView: View {
                                     .foregroundColor(.white)
                                 
                                 Spacer()
-                                
-                                Text("5")
+                                Text("\(workoutManager.quickStartTemplates.count)")
                                     .font(.caption)
                                     .foregroundColor(.secondary)
                             }

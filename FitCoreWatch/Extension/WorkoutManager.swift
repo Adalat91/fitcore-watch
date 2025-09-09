@@ -80,7 +80,8 @@ class WorkoutManager: NSObject, ObservableObject {
     }
     
     var quickStartTemplates: [WorkoutTemplate] {
-        WorkoutTemplate.quickStartTemplates
+        // Temporarily disabled; show 0 in UI until examples are enabled again
+        return []
     }
     
     @Published var userTemplates: [WorkoutTemplate] = []
