@@ -83,48 +83,58 @@ struct WorkoutSetupView: View {
                     Text("Edit Set")
                         .font(.subheadline)
                         .fontWeight(.semibold)
-                    // Exercise weight row (compact)
-                    HStack(spacing: 8) {
+                    // Exercise weight row (compact, non-truncating)
+                    HStack(spacing: 6) {
                         Button { if let w = tempWeight { tempWeight = max(0, w - 2.5) } else { tempWeight = 0 } } label: { Image(systemName: "minus") }
                             .buttonStyle(.bordered)
                             .controlSize(.mini)
-                        Spacer(minLength: 6)
+                        Spacer(minLength: 4)
                         Text(weightString(tempWeight))
-                            .font(.body)
+                            .font(.callout)
                             .monospacedDigit()
+                            .lineLimit(1)
+                            .minimumScaleFactor(0.8)
                         Text("+LBS")
                             .font(.caption2)
                             .foregroundColor(.secondary)
-                        Spacer(minLength: 6)
+                            .lineLimit(1)
+                            .minimumScaleFactor(0.6)
+                            .layoutPriority(2)
+                        Spacer(minLength: 4)
                         Button { tempWeight = (tempWeight ?? 0) + 2.5 } label: { Image(systemName: "plus") }
                             .buttonStyle(.bordered)
                             .controlSize(.mini)
                     }
                     .padding(.horizontal, 8)
                     .padding(.vertical, 6)
-                    .frame(height: 34)
+                    .frame(height: 32)
                     .background(Color.gray.opacity(0.2))
                     .cornerRadius(8)
-                    // Reps row (compact)
-                    HStack(spacing: 8) {
+                    // Reps row (compact, non-truncating)
+                    HStack(spacing: 6) {
                         Button { tempReps = max(1, tempReps - 1) } label: { Image(systemName: "minus") }
                             .buttonStyle(.bordered)
                             .controlSize(.mini)
-                        Spacer(minLength: 6)
+                        Spacer(minLength: 4)
                         Text("\(tempReps)")
-                            .font(.body)
+                            .font(.callout)
                             .monospacedDigit()
+                            .lineLimit(1)
+                            .minimumScaleFactor(0.8)
                         Text("REPS")
                             .font(.caption2)
                             .foregroundColor(.secondary)
-                        Spacer(minLength: 6)
+                            .lineLimit(1)
+                            .minimumScaleFactor(0.6)
+                            .layoutPriority(2)
+                        Spacer(minLength: 4)
                         Button { tempReps += 1 } label: { Image(systemName: "plus") }
                             .buttonStyle(.bordered)
                             .controlSize(.mini)
                     }
                     .padding(.horizontal, 8)
                     .padding(.vertical, 6)
-                    .frame(height: 34)
+                    .frame(height: 32)
                     .background(Color.gray.opacity(0.2))
                     .cornerRadius(8)
                     // Preview and actions (compact)
@@ -340,7 +350,7 @@ struct ExercisePreviewCard: View {
                         Text("1")
                             .font(.caption2)
                         Spacer()
-                        Text("\(exercise.sets[0].weight != nil ? String(Int(exercise.sets[0].weight!)) : "--") lb×\(exercise.sets[0].reps)")
+                        Text("\(weightString(exercise.sets[0].weight)) lb×\(exercise.sets[0].reps)")
                             .font(.caption2)
                     }
                     .padding(8)
@@ -369,7 +379,7 @@ struct ExercisePreviewCard: View {
                         Text("2")
                             .font(.caption2)
                         Spacer()
-                        Text("\(exercise.sets[1].weight != nil ? String(Int(exercise.sets[1].weight!)) : "--") lb×\(exercise.sets[1].reps)")
+                        Text("\(weightString(exercise.sets[1].weight)) lb×\(exercise.sets[1].reps)")
                             .font(.caption2)
                     }
                     .padding(8)
@@ -393,6 +403,12 @@ struct ExercisePreviewCard: View {
             }
         }
     }
+}
+
+private func weightString(_ value: Double?) -> String {
+    guard let v = value else { return "--" }
+    if v.truncatingRemainder(dividingBy: 1) == 0 { return String(Int(v)) }
+    return String(format: "%.1f", v)
 }
 
 // Simple info sheet for the session
