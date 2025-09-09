@@ -258,6 +258,25 @@ class WorkoutManager: NSObject, ObservableObject {
         }
     }
     
+    /// Update a set's weight and reps by exerciseId and set index.
+    func updateSet(exerciseId: UUID, setIndex: Int, weight: Double?, reps: Int) {
+        if var workout = currentWorkout {
+            if let eIdx = workout.exercises.firstIndex(where: { $0.id == exerciseId }),
+               workout.exercises[eIdx].sets.indices.contains(setIndex) {
+                workout.exercises[eIdx].sets[setIndex].weight = weight
+                workout.exercises[eIdx].sets[setIndex].reps = reps
+                currentWorkout = workout
+                saveWorkout(workout)
+            }
+        } else {
+            if let eIdx = draftExercises.firstIndex(where: { $0.id == exerciseId }),
+               draftExercises[eIdx].sets.indices.contains(setIndex) {
+                draftExercises[eIdx].sets[setIndex].weight = weight
+                draftExercises[eIdx].sets[setIndex].reps = reps
+            }
+        }
+    }
+    
     func completeSet(exerciseId: UUID, setId: UUID) {
         guard var workout = currentWorkout else { return }
         
