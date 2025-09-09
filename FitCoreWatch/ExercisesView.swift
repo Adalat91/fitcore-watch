@@ -22,7 +22,7 @@ struct ExercisesView: View {
                     .padding(.horizontal, 6)
                     .padding(.vertical, 4)
                     .frame(height: 26)
-                    .background(Color.gray.opacity(0.2))
+                    .background(Color.white.opacity(0.08))
                     .cornerRadius(6)
 
                     // Horizontal scrollable filter chips
@@ -80,9 +80,12 @@ struct ExercisesView: View {
                     }
                     .padding(.vertical, 2)
                     .listRowInsets(EdgeInsets(top: 2, leading: 8, bottom: 2, trailing: 8))
+                    .listRowBackground(Color.clear)
                 }
             }
             .listStyle(.plain)
+            .scrollContentBackground(.hidden)
+            .background(Color.black.opacity(0.35))
             .navigationTitle("Exercises")
             .navigationBarTitleDisplayMode(.inline)
         }
@@ -116,7 +119,7 @@ struct ExercisesView: View {
     private func toggleStarred() {
         favoritesOnly.toggle()
     }
-    private func chipBg(active: Bool) -> Color { active ? Color.accentColor.opacity(0.25) : Color.gray.opacity(0.2) }
+    private func chipBg(active: Bool) -> Color { active ? Color.accentColor.opacity(0.30) : Color.white.opacity(0.08) }
 }
 
 #Preview {
