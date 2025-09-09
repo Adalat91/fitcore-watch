@@ -168,7 +168,12 @@ struct WorkoutSetupView: View {
                                 }
                                 // If rest timers are enabled, start a rest timer after completing a set
                                 if workoutManager.restTimersEnabled {
-                                    workoutManager.startRest(exerciseId: eId, afterSetIndex: editingSetIndex, duration: AppConstants.Timer.defaultRestTime)
+                                    // Use the set's configured rest time (fallback to default)
+                                    var restDuration = AppConstants.Timer.defaultRestTime
+                                    if let ex = exerciseList.first(where: { $0.id == eId }), ex.sets.indices.contains(editingSetIndex) {
+                                        restDuration = ex.sets[editingSetIndex].restTime
+                                    }
+                                    workoutManager.startRest(exerciseId: eId, afterSetIndex: editingSetIndex, duration: restDuration)
                                     // Mirror to local state for immediate UI update
                                     activeRestExerciseId = workoutManager.activeRestExerciseId
                                     activeRestAfterSetIndex = workoutManager.activeRestAfterSetIndex
