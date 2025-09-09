@@ -24,6 +24,23 @@ class WorkoutManager: NSObject, ObservableObject {
     var activeStartDate: Date? {
         currentWorkout?.startTime ?? sessionStartDate
     }
+
+    /// Complete a set by its index within an exercise. Works for both active workout and draft.
+    func completeSetByIndex(exerciseId: UUID, setIndex: Int) {
+        if var workout = currentWorkout {
+            if let eIdx = workout.exercises.firstIndex(where: { $0.id == exerciseId }),
+               workout.exercises[eIdx].sets.indices.contains(setIndex) {
+                let setId = workout.exercises[eIdx].sets[setIndex].id
+                // Reuse existing flow which also syncs and persists
+                completeSet(exerciseId: exerciseId, setId: setId)
+            }
+        } else {
+            if let eIdx = draftExercises.firstIndex(where: { $0.id == exerciseId }),
+               draftExercises[eIdx].sets.indices.contains(setIndex) {
+                draftExercises[eIdx].sets[setIndex].complete()
+            }
+        }
+    }
     
     // Live elapsed time derived from the single source of truth + pause accounting
     var activeElapsedTime: TimeInterval {

@@ -151,6 +151,9 @@ struct WorkoutSetupView: View {
                             if let eId = editingExerciseId {
                                 let wDouble = tempWeight
                                 workoutManager.updateSet(exerciseId: eId, setIndex: editingSetIndex, weight: wDouble, reps: tempReps)
+                                withAnimation(.easeInOut(duration: 0.2)) {
+                                    workoutManager.completeSetByIndex(exerciseId: eId, setIndex: editingSetIndex)
+                                }
                             }
                             showEditSheet = false
                         } label: {
@@ -352,9 +355,14 @@ struct ExercisePreviewCard: View {
                         Spacer()
                         Text("\(weightString(exercise.sets[0].weight)) lb×\(exercise.sets[0].reps)")
                             .font(.caption2)
+                        if exercise.sets[0].isCompleted {
+                            Image(systemName: "checkmark.circle.fill")
+                                .font(.caption2)
+                                .foregroundColor(.green)
+                        }
                     }
                     .padding(8)
-                    .background(Color.white.opacity(0.08))
+                    .background(exercise.sets[0].isCompleted ? Color.green.opacity(0.18) : Color.white.opacity(0.08))
                     .cornerRadius(10)
                 }
                 .buttonStyle(.plain)
@@ -381,9 +389,14 @@ struct ExercisePreviewCard: View {
                         Spacer()
                         Text("\(weightString(exercise.sets[1].weight)) lb×\(exercise.sets[1].reps)")
                             .font(.caption2)
+                        if exercise.sets[1].isCompleted {
+                            Image(systemName: "checkmark.circle.fill")
+                                .font(.caption2)
+                                .foregroundColor(.green)
+                        }
                     }
                     .padding(8)
-                    .background(Color.white.opacity(0.08))
+                    .background(exercise.sets[1].isCompleted ? Color.green.opacity(0.18) : Color.white.opacity(0.08))
                     .cornerRadius(10)
                 }
                 .buttonStyle(.plain)
