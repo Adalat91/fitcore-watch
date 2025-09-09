@@ -88,14 +88,10 @@ struct HomeView: View {
                         Color.clear.frame(width: 20, height: 20)
                     }
                     
-                    // Start or Active Workout (show active if a workout exists OR a pre-workout session is in progress)
-                    if let activeWorkout = workoutManager.currentWorkout ?? (workoutManager.activeStartDate != nil ? Workout(name: "", exercises: []) : nil) {
+                    // Start or Active Workout (show active only if a real workout exists)
+                    if let activeWorkout = workoutManager.currentWorkout {
                         Button(action: {
-                            if workoutManager.currentWorkout != nil {
-                                navPath.append(HomeRoute.activeWorkout)
-                            } else {
-                                navPath.append(HomeRoute.setup)
-                            }
+                            navPath.append(HomeRoute.activeWorkout)
                         }) {
                             HStack {
                                 VStack(alignment: .leading, spacing: 2) {
