@@ -249,7 +249,7 @@ struct WorkoutSetupView: View {
                 }) {
                     Image(systemName: soundEnabled ? "bell.fill" : "bell.slash.fill")
                         .font(.caption)
-                        .foregroundColor(soundEnabled ? .secondary : .red)
+                        .foregroundColor(soundEnabled ? Color.blue.opacity(0.7) : .red)
                 }
                 .buttonStyle(.plain)
                 .accessibilityLabel("Sound")
