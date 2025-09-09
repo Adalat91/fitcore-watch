@@ -242,8 +242,13 @@ class WorkoutManager: NSObject, ObservableObject {
     // MARK: - Exercise Management
     
     /// Add an exercise either to the active workout or to the pre-workout draft list
+    /// Creates 2 default sets (12 reps, 2:00 rest) so the user sees set rows immediately.
     func addExercise(name: String, category: String) {
-        let ex = Exercise(name: name, category: category)
+        let defaultSets = [
+            Set(weight: nil, reps: 12),
+            Set(weight: nil, reps: 12)
+        ]
+        let ex = Exercise(name: name, category: category, sets: defaultSets)
         if var workout = currentWorkout {
             workout.exercises.append(ex)
             currentWorkout = workout

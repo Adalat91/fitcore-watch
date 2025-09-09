@@ -72,6 +72,75 @@ struct WorkoutSetupView: View {
                         .accessibilityValue(soundEnabled ? "On" : "Off")
                     }
                     
+                    // Show added exercises (current workout if active, else draft list)
+                    VStack(alignment: .leading, spacing: 8) {
+                        let list = workoutManager.currentWorkout?.exercises ?? workoutManager.draftExercises
+                        ForEach(list) { ex in
+                            VStack(alignment: .leading, spacing: 6) {
+                                // Exercise name row
+                                HStack {
+                                    Text(ex.name)
+                                        .font(.caption)
+                                        .fontWeight(.semibold)
+                                        .lineLimit(1)
+                                    Spacer()
+                                    Image(systemName: "ellipsis")
+                                        .font(.caption2)
+                                }
+                                .padding(8)
+                                .background(Color.white.opacity(0.08))
+                                .cornerRadius(10)
+
+                                // Two default sets preview
+                                let sets = ex.sets
+                                if sets.indices.contains(0) {
+                                    HStack {
+                                        Text("1")
+                                            .font(.caption2)
+                                        Spacer()
+                                        Text(sets[0].weight != nil ? "\(Int(sets[0].weight!)) lb×\(sets[0].reps)" : "\(sets[0].reps) reps")
+                                            .font(.caption2)
+                                    }
+                                    .padding(8)
+                                    .background(Color.white.opacity(0.08))
+                                    .cornerRadius(10)
+                                }
+                                HStack {
+                                    Image(systemName: "timer")
+                                        .font(.caption2)
+                                    Spacer()
+                                    Text("2:00")
+                                        .font(.caption2)
+                                }
+                                .padding(8)
+                                .background(Color.white.opacity(0.08))
+                                .cornerRadius(10)
+                                if sets.indices.contains(1) {
+                                    HStack {
+                                        Text("2")
+                                            .font(.caption2)
+                                        Spacer()
+                                        Text(sets[1].weight != nil ? "\(Int(sets[1].weight!)) lb×\(sets[1].reps)" : "\(sets[1].reps) reps")
+                                            .font(.caption2)
+                                    }
+                                    .padding(8)
+                                    .background(Color.white.opacity(0.08))
+                                    .cornerRadius(10)
+                                }
+                                HStack {
+                                    Image(systemName: "timer")
+                                        .font(.caption2)
+                                    Spacer()
+                                    Text("2:00")
+                                        .font(.caption2)
+                                }
+                                .padding(8)
+                                .background(Color.white.opacity(0.08))
+                                .cornerRadius(10)
+                            }
+                        }
+                    }
+                    
                     Button(action: { showingAddExercises = true }) {
                         HStack {
                             VStack(alignment: .leading, spacing: 2) {
@@ -107,7 +176,7 @@ struct WorkoutSetupView: View {
                         .frame(maxWidth: .infinity)
                 }
                 .buttonStyle(.borderedProminent)
-                .tint(.green)
+                .tint(.orange)
                 .controlSize(.small)
 
                 // Danger/secondary
@@ -139,6 +208,7 @@ struct WorkoutSetupView: View {
             .navigationBarTitleDisplayMode(.inline)
             .sheet(isPresented: $showingAddExercises) {
                 ExercisesView()
+                    .environmentObject(workoutManager)
             }
             .sheet(isPresented: $showingInfo) {
                 SessionInfoView()
