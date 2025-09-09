@@ -450,68 +450,7 @@ struct ProfileView: View {
     }
 }
 
-struct QuickStartView: View {
-    @Environment(\.dismiss) private var dismiss
-    @EnvironmentObject var workoutManager: WorkoutManager
-    
-    var body: some View {
-        NavigationView {
-            VStack(spacing: 20) {
-                Text("Start a Quick Workout")
-                    .font(.title2)
-                    .fontWeight(.semibold)
-                
-                Text("Choose a workout template to get started")
-                    .font(.subheadline)
-                    .foregroundColor(.secondary)
-                    .multilineTextAlignment(.center)
-                
-                VStack(spacing: 12) {
-                    ForEach(workoutManager.quickStartTemplates) { template in
-                        Button(action: {
-                            workoutManager.startWorkout(from: template)
-                            dismiss()
-                        }) {
-                            HStack {
-                                VStack(alignment: .leading) {
-                                    Text(template.name)
-                                        .font(.headline)
-                                        .fontWeight(.medium)
-                                    
-                                    Text("\(template.exercises.count) exercises")
-                                        .font(.caption)
-                                        .foregroundColor(.secondary)
-                                }
-                                
-                                Spacer()
-                                
-                                Image(systemName: "play.circle.fill")
-                                    .font(.title2)
-                                    .foregroundColor(.accentColor)
-                            }
-                            .padding()
-                            .background(Color.gray.opacity(0.3))
-                            .cornerRadius(12)
-                        }
-                        .buttonStyle(PlainButtonStyle())
-                    }
-                }
-                
-                Spacer()
-            }
-            .padding()
-            .navigationTitle("Quick Start")
-            .navigationBarTitleDisplayMode(.inline)
-            .toolbar {
-                ToolbarItem(placement: .cancellationAction) {
-                    Button("Cancel") {
-                        dismiss()
-                    }
-                }
-            }
-        }
-    }
-}
+// QuickStartView removed: quick start flow is no longer supported. All sessions start from the Start button or user templates.
 
 struct TemplatesView: View {
     @Environment(\.dismiss) private var dismiss
