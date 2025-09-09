@@ -31,6 +31,11 @@ class TimerManager: ObservableObject {
         timer = Timer.scheduledTimer(withTimeInterval: 1.0, repeats: true) { [weak self] _ in
             self?.updateTimer()
         }
+        if let t = timer {
+            RunLoop.main.add(t, forMode: .common)
+        }
+        // Update immediately so UI reflects countdown without waiting 1s
+        updateTimer()
     }
     
     func pauseTimer() {
@@ -51,6 +56,9 @@ class TimerManager: ObservableObject {
         
         timer = Timer.scheduledTimer(withTimeInterval: 1.0, repeats: true) { [weak self] _ in
             self?.updateTimer()
+        }
+        if let t = timer {
+            RunLoop.main.add(t, forMode: .common)
         }
     }
     
@@ -186,6 +194,11 @@ class TimerManager: ObservableObject {
         workoutTimer = Timer.scheduledTimer(withTimeInterval: 1.0, repeats: true) { [weak self] _ in
             self?.updateWorkoutTimer()
         }
+        if let wt = workoutTimer {
+            RunLoop.main.add(wt, forMode: .common)
+        }
+        // Immediate UI update
+        updateWorkoutTimer()
     }
     
     func stopWorkoutTimer() {
@@ -209,6 +222,9 @@ class TimerManager: ObservableObject {
         }
         workoutTimer = Timer.scheduledTimer(withTimeInterval: 1.0, repeats: true) { [weak self] _ in
             self?.updateWorkoutTimer()
+        }
+        if let wt = workoutTimer {
+            RunLoop.main.add(wt, forMode: .common)
         }
     }
     

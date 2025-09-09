@@ -22,6 +22,9 @@ struct WorkoutSetupView: View {
     @State private var tempWeight: Double? = nil
     @State private var tempReps: Int = 12
     @State private var showEditSheet: Bool = false
+    // Track which rest row (exercise + set index) is currently active
+    @State private var activeRestExerciseId: UUID? = nil
+    @State private var activeRestAfterSetIndex: Int? = nil
     
     var body: some View {
         NavigationView {
@@ -157,6 +160,13 @@ struct WorkoutSetupView: View {
                                 withAnimation(.easeInOut(duration: 0.2)) {
                                     workoutManager.completeSetByIndex(exerciseId: eId, setIndex: editingSetIndex)
                                 }
+                                // If rest timers are enabled, start a rest timer after completing a set
+                                if workoutManager.restTimersEnabled {
+                                    timerManager.startRestTimer(duration: AppConstants.Timer.defaultRestTime)
+                                    // Mark the rest row after this set as active
+                                    activeRestExerciseId = eId
+                                    activeRestAfterSetIndex = editingSetIndex
+                                }
                             }
                             showEditSheet = false
                         } label: {
@@ -256,12 +266,38 @@ struct WorkoutSetupView: View {
                 .accessibilityValue(soundEnabled ? "On" : "Off")
             }
             
+            // Live Rest Timer (visible only when running)
+            if timerManager.isRunning {
+                HStack(spacing: 8) {
+                    Image(systemName: "timer")
+                        .font(.caption)
+                        .foregroundColor(.blue)
+                    Text("Rest: \(timerManager.formattedTime)")
+                        .font(.caption)
+                        .monospacedDigit()
+                    Spacer()
+                    Button("Skip") {
+                        timerManager.skipTimer()
+                    }
+                    .font(.caption2)
+                    .buttonStyle(.bordered)
+                    .controlSize(.mini)
+                }
+                .padding(8)
+                .background(Color.blue.opacity(0.15))
+                .cornerRadius(10)
+            }
+            
             // Show added exercises
             VStack(alignment: .leading, spacing: 8) {
                 ForEach(exerciseList) { ex in
                     ExercisePreviewCard(
                         exercise: ex,
                         restOn: workoutManager.restTimersEnabled,
+                        activeRestExerciseId: activeRestExerciseId,
+                        activeRestAfterSetIndex: activeRestAfterSetIndex,
+                        restTimeText: timerManager.formattedTime,
+                        restRunning: timerManager.isRunning,
                         onEdit: { idx in
                             if ex.sets.indices.contains(idx) {
                                 self.showEditSet(exerciseId: ex.id, setIndex: idx, current: ex.sets[idx])
@@ -342,6 +378,10 @@ struct WorkoutSetupView: View {
 struct ExercisePreviewCard: View {
     let exercise: Exercise
     let restOn: Bool
+    let activeRestExerciseId: UUID?
+    let activeRestAfterSetIndex: Int?
+    let restTimeText: String
+    let restRunning: Bool
     let onEdit: (Int) -> Void
     let onDelete: () -> Void
     let onAddSet: () -> Void
@@ -382,7 +422,7 @@ struct ExercisePreviewCard: View {
     @ViewBuilder private var setsList: some View {
         ForEach(exercise.sets.indices, id: \.self) { idx in
             setRow(idx: idx)
-            if restOn && idx < exercise.sets.count - 1 { restRow() }
+            if restOn && idx < exercise.sets.count - 1 { restRow(afterSetIndex: idx) }
         }
     }
 
@@ -408,13 +448,20 @@ struct ExercisePreviewCard: View {
         .buttonStyle(.plain)
     }
 
-    @ViewBuilder private func restRow() -> some View {
+    @ViewBuilder private func restRow(afterSetIndex idx: Int) -> some View {
         HStack(spacing: 6) {
             Image(systemName: "timer")
                 .font(.system(size: 10))
             Spacer(minLength: 6)
-            Text("2:00")
-                .font(.caption2)
+            // Show live countdown only for the active rest row
+            if restRunning && activeRestExerciseId == exercise.id && activeRestAfterSetIndex == idx {
+                Text(restTimeText)
+                    .monospacedDigit()
+                    .font(.caption2)
+            } else {
+                Text("2:00")
+                    .font(.caption2)
+            }
         }
         .padding(.vertical, 2)
     }

@@ -138,9 +138,10 @@ struct WorkoutView: View {
         
         workoutManager.completeSet(exerciseId: exercise.id, setId: exercise.sets[currentSetIndex].id)
         
-        // Start rest timer
-        if let set = currentSet {
+        // Start rest timer if enabled and reveal timer UI
+        if workoutManager.restTimersEnabled, let set = currentSet {
             timerManager.startRestTimer(duration: set.restTime)
+            showingTimer = true
         }
         
         // Move to next set
