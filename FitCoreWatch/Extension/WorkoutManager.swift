@@ -330,6 +330,29 @@ class WorkoutManager: NSObject, ObservableObject {
         currentWorkout = workout
         saveWorkout(workout)
     }
+
+    /// Add a set to an exercise for either an active workout or the draft list.
+    /// If the exercise already has sets, copy the last set's weight and reps.
+    /// Otherwise, use the provided defaults (nil weight, 12 reps).
+    func addSetToExercise(exerciseId: UUID, weight: Double? = nil, reps: Int = 12) {
+        if var workout = currentWorkout {
+            if let idx = workout.exercises.firstIndex(where: { $0.id == exerciseId }) {
+                let last = workout.exercises[idx].sets.last
+                let newSet = Set(weight: last?.weight ?? weight, reps: last?.reps ?? reps)
+                workout.exercises[idx].sets.append(newSet)
+                currentWorkout = workout
+                saveWorkout(workout)
+            }
+        } else {
+            if let idx = draftExercises.firstIndex(where: { $0.id == exerciseId }) {
+                let last = draftExercises[idx].sets.last
+                let newSet = Set(weight: last?.weight ?? weight, reps: last?.reps ?? reps)
+                var ex = draftExercises[idx]
+                ex.sets.append(newSet)
+                draftExercises[idx] = ex // trigger @Published update
+            }
+        }
+    }
     
     // MARK: - Health Kit
     

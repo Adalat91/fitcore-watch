@@ -255,8 +255,7 @@ struct WorkoutSetupView: View {
             
             // Show added exercises
             VStack(alignment: .leading, spacing: 8) {
-                let list = workoutManager.currentWorkout?.exercises ?? workoutManager.draftExercises
-                ForEach(list) { ex in
+                ForEach(exerciseList) { ex in
                     ExercisePreviewCard(
                         exercise: ex,
                         restOn: workoutManager.restTimersEnabled,
@@ -269,6 +268,27 @@ struct WorkoutSetupView: View {
                 }
             }
             
+            // Add Set button (adds to last exercise if exists)
+            if let targetExercise = exerciseList.last {
+                Button {
+                    workoutManager.addSetToExercise(exerciseId: targetExercise.id, weight: nil, reps: 12)
+                } label: {
+                    HStack {
+                        Text("Add Set")
+                            .font(.subheadline)
+                            .fontWeight(.semibold)
+                        Spacer()
+                        Image(systemName: "plus")
+                            .font(.body)
+                    }
+                    .padding()
+                    .frame(maxWidth: .infinity)
+                    .background(Color.gray.opacity(0.2))
+                    .cornerRadius(12)
+                }
+                .buttonStyle(.plain)
+            }
+
             Button(action: { showingAddExercises = true }) {
                 HStack {
                     VStack(alignment: .leading, spacing: 2) {
@@ -291,6 +311,11 @@ struct WorkoutSetupView: View {
         .padding()
         .background(Color.gray.opacity(0.2))
         .cornerRadius(12)
+    }
+
+    // Computed list to ease type-checking
+    private var exerciseList: [Exercise] {
+        workoutManager.currentWorkout?.exercises ?? workoutManager.draftExercises
     }
     
     // No explicit start button; the workout will be started from another UI action.
@@ -332,89 +357,67 @@ struct ExercisePreviewCard: View {
     
     var body: some View {
         VStack(alignment: .leading, spacing: 6) {
-            // Exercise name row
+            nameRow
+            setsList
+        }
+    }
+
+    // MARK: - Subcomponents
+    private var nameRow: some View {
+        HStack {
+            Text(exercise.name)
+                .font(.caption)
+                .fontWeight(.semibold)
+                .lineLimit(1)
+            Spacer()
+            Image(systemName: "ellipsis")
+                .font(.caption2)
+        }
+        .padding(8)
+        .background(Color.white.opacity(0.08))
+        .cornerRadius(10)
+    }
+
+    @ViewBuilder private var setsList: some View {
+        ForEach(exercise.sets.indices, id: \.self) { idx in
+            setRow(idx: idx)
+            if restOn && idx < exercise.sets.count - 1 { restRow() }
+        }
+    }
+
+    @ViewBuilder private func setRow(idx: Int) -> some View {
+        let set = exercise.sets[idx]
+        Button { onEdit(idx) } label: {
             HStack {
-                Text(exercise.name)
-                    .font(.caption)
-                    .fontWeight(.semibold)
-                    .lineLimit(1)
-                Spacer()
-                Image(systemName: "ellipsis")
+                Text("\(idx + 1)")
                     .font(.caption2)
+                Spacer()
+                Text("\(weightString(set.weight)) lb×\(set.reps)")
+                    .font(.caption2)
+                if set.isCompleted {
+                    Image(systemName: "checkmark.circle.fill")
+                        .font(.caption2)
+                        .foregroundColor(.green)
+                }
             }
             .padding(8)
-            .background(Color.white.opacity(0.08))
+            .background(set.isCompleted ? Color.green.opacity(0.18) : Color.white.opacity(0.08))
             .cornerRadius(10)
-            
-            // Set 1
-            if exercise.sets.indices.contains(0) {
-                Button { onEdit(0) } label: {
-                    HStack {
-                        Text("1")
-                            .font(.caption2)
-                        Spacer()
-                        Text("\(weightString(exercise.sets[0].weight)) lb×\(exercise.sets[0].reps)")
-                            .font(.caption2)
-                        if exercise.sets[0].isCompleted {
-                            Image(systemName: "checkmark.circle.fill")
-                                .font(.caption2)
-                                .foregroundColor(.green)
-                        }
-                    }
-                    .padding(8)
-                    .background(exercise.sets[0].isCompleted ? Color.green.opacity(0.18) : Color.white.opacity(0.08))
-                    .cornerRadius(10)
-                }
-                .buttonStyle(.plain)
-            }
-            // Rest 1
-            if restOn {
-                HStack {
-                    Image(systemName: "timer")
-                        .font(.caption2)
-                    Spacer()
-                    Text("2:00")
-                        .font(.caption2)
-                }
-                .padding(8)
-                .background(Color.white.opacity(0.08))
-                .cornerRadius(10)
-            }
-            // Set 2
-            if exercise.sets.indices.contains(1) {
-                Button { onEdit(1) } label: {
-                    HStack {
-                        Text("2")
-                            .font(.caption2)
-                        Spacer()
-                        Text("\(weightString(exercise.sets[1].weight)) lb×\(exercise.sets[1].reps)")
-                            .font(.caption2)
-                        if exercise.sets[1].isCompleted {
-                            Image(systemName: "checkmark.circle.fill")
-                                .font(.caption2)
-                                .foregroundColor(.green)
-                        }
-                    }
-                    .padding(8)
-                    .background(exercise.sets[1].isCompleted ? Color.green.opacity(0.18) : Color.white.opacity(0.08))
-                    .cornerRadius(10)
-                }
-                .buttonStyle(.plain)
-            }
-            // Rest 2
-            if restOn {
-                HStack {
-                    Image(systemName: "timer")
-                        .font(.caption2)
-                    Spacer()
-                    Text("2:00")
-                        .font(.caption2)
-                }
-                .padding(8)
-                .background(Color.white.opacity(0.08))
-                .cornerRadius(10)
-            }
         }
+        .buttonStyle(.plain)
+    }
+
+    @ViewBuilder private func restRow() -> some View {
+        HStack {
+            Image(systemName: "timer")
+                .font(.caption2)
+            Spacer()
+            Text("2:00")
+                .font(.caption2)
+        }
+        .padding(8)
+        .background(Color.white.opacity(0.08))
+        .cornerRadius(10)
     }
 }
 
