@@ -194,9 +194,19 @@ struct WorkoutSetupView: View {
             // Rest editor sheet
             .sheet(isPresented: $showRestEditor) {
                 VStack(spacing: 10) {
-                    Text("Edit Rest")
-                        .font(.subheadline)
-                        .fontWeight(.semibold)
+                    HStack {
+                        Text("Edit Rest")
+                            .font(.subheadline)
+                            .fontWeight(.semibold)
+                        Spacer()
+                        Button("Set All") {
+                            workoutManager.updateAllRestTimes(restSeconds: tempRestSeconds)
+                            showRestEditor = false
+                        }
+                        .buttonStyle(.bordered)
+                        .controlSize(.mini)
+                        .font(.caption2)
+                    }
                     HStack(spacing: 12) {
                         Button { tempRestSeconds = max(15, tempRestSeconds - 15) } label: { Image(systemName: "minus") }
                             .buttonStyle(.bordered)

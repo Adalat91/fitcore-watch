@@ -43,6 +43,26 @@ class WorkoutManager: NSObject, ObservableObject {
         }
     }
 
+    /// Set the same rest time for all existing sets in either the active workout or the draft exercises
+    func updateAllRestTimes(restSeconds: Int) {
+        let rt: TimeInterval = TimeInterval(restSeconds)
+        if var workout = currentWorkout {
+            for eIdx in workout.exercises.indices {
+                for sIdx in workout.exercises[eIdx].sets.indices {
+                    workout.exercises[eIdx].sets[sIdx].restTime = rt
+                }
+            }
+            currentWorkout = workout
+            saveWorkout(workout)
+        } else {
+            for exIdx in draftExercises.indices {
+                for sIdx in draftExercises[exIdx].sets.indices {
+                    draftExercises[exIdx].sets[sIdx].restTime = rt
+                }
+            }
+        }
+    }
+
     /// Complete a set by its index within an exercise. Works for both active workout and draft.
     func completeSetByIndex(exerciseId: UUID, setIndex: Int) {
         if var workout = currentWorkout {
