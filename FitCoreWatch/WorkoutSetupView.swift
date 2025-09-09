@@ -5,7 +5,6 @@ struct WorkoutSetupView: View {
     @EnvironmentObject var workoutManager: WorkoutManager
     @StateObject private var timerManager = TimerManager()
     
-    @State private var includeWarmup = false
     @State private var restTimersEnabled = true
     @State private var soundEnabled = true
     
@@ -37,20 +36,6 @@ struct WorkoutSetupView: View {
                 
                 // Options blocks
                 VStack(alignment: .leading, spacing: 8) {
-                    HStack(alignment: .center) {
-                        VStack(alignment: .leading, spacing: 2) {
-                            Text("Warmup")
-                                .font(.headline)
-                                .foregroundColor(.orange)
-                        }
-                        Spacer()
-                        Toggle("Warmup", isOn: $includeWarmup)
-                            .labelsHidden()
-                    }
-                    .padding()
-                    .background(Color.gray.opacity(0.2))
-                    .cornerRadius(12)
-                    
                     HStack(alignment: .center) {
                         VStack(alignment: .leading, spacing: 2) {
                             Text("Rest Timers")
@@ -215,7 +200,6 @@ struct SessionInfoView: View {
                     }
                 }
                 Section("Options") {
-                    HStack { Text("Warmup"); Spacer(); Text(workoutManager.includeWarmupSession ? "On" : "Off").foregroundColor(.secondary) }
                     HStack { Text("Rest Timers"); Spacer(); Text(workoutManager.restTimersEnabled ? "On" : "Off").foregroundColor(.secondary) }
                     HStack { Text("Sound"); Spacer(); Text(workoutManager.soundEnabled ? "On" : "Off").foregroundColor(.secondary) }
                 }
