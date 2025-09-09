@@ -266,27 +266,7 @@ struct WorkoutSetupView: View {
                 .accessibilityValue(soundEnabled ? "On" : "Off")
             }
             
-            // Live Rest Timer (visible only when running)
-            if timerManager.isRunning {
-                HStack(spacing: 8) {
-                    Image(systemName: "timer")
-                        .font(.caption)
-                        .foregroundColor(.blue)
-                    Text("Rest: \(timerManager.formattedTime)")
-                        .font(.caption)
-                        .monospacedDigit()
-                    Spacer()
-                    Button("Skip") {
-                        timerManager.skipTimer()
-                    }
-                    .font(.caption2)
-                    .buttonStyle(.bordered)
-                    .controlSize(.mini)
-                }
-                .padding(8)
-                .background(Color.blue.opacity(0.15))
-                .cornerRadius(10)
-            }
+            // Removed large rest timer pill; using only small between-sets timer rows
             
             // Show added exercises
             VStack(alignment: .leading, spacing: 8) {
@@ -450,17 +430,21 @@ struct ExercisePreviewCard: View {
 
     @ViewBuilder private func restRow(afterSetIndex idx: Int) -> some View {
         HStack(spacing: 6) {
+            let isActive = restRunning && activeRestExerciseId == exercise.id && activeRestAfterSetIndex == idx
             Image(systemName: "timer")
                 .font(.system(size: 10))
+                .foregroundColor(isActive ? .blue : .secondary)
             Spacer(minLength: 6)
             // Show live countdown only for the active rest row
-            if restRunning && activeRestExerciseId == exercise.id && activeRestAfterSetIndex == idx {
+            if isActive {
                 Text(restTimeText)
                     .monospacedDigit()
                     .font(.caption2)
+                    .foregroundColor(.blue)
             } else {
                 Text("2:00")
                     .font(.caption2)
+                    .foregroundColor(.secondary)
             }
         }
         .padding(.vertical, 2)
