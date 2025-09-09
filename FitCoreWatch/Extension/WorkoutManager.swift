@@ -85,6 +85,23 @@ class WorkoutManager: NSObject, ObservableObject {
     }
     
     @Published var userTemplates: [WorkoutTemplate] = []
+
+    // Shared Rest Timer manager so rest timers persist across views
+    @Published var restTimerManager: TimerManager = TimerManager()
+
+    // Convenience proxies
+    var isRestTimerRunning: Bool { restTimerManager.isRunning }
+    var restTimerFormatted: String { restTimerManager.formattedTime }
+    // Track which rest row is active across navigation
+    @Published var activeRestExerciseId: UUID? = nil
+    @Published var activeRestAfterSetIndex: Int? = nil
+
+    /// Starts a rest timer and records which exercise/set it belongs to, so UI can highlight the correct row across views
+    func startRest(exerciseId: UUID, afterSetIndex: Int, duration: TimeInterval) {
+        restTimerManager.startRestTimer(duration: duration)
+        activeRestExerciseId = exerciseId
+        activeRestAfterSetIndex = afterSetIndex
+    }
     
     var myTemplatesCount: Int {
         userTemplates.count

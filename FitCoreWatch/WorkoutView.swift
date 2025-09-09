@@ -3,6 +3,7 @@ import SwiftUI
 struct WorkoutView: View {
     let workout: Workout
     @EnvironmentObject var workoutManager: WorkoutManager
+    // Local manager for workout session elapsed timer
     @StateObject private var timerManager = TimerManager()
     @State private var isPaused = false
     @State private var currentExerciseIndex = 0
@@ -75,7 +76,7 @@ struct WorkoutView: View {
                     
                     if showingTimer {
                         TimerView()
-                            .environmentObject(timerManager)
+                            .environmentObject(workoutManager.restTimerManager)
                     }
                 }
                 .padding()
@@ -138,9 +139,9 @@ struct WorkoutView: View {
         
         workoutManager.completeSet(exerciseId: exercise.id, setId: exercise.sets[currentSetIndex].id)
         
-        // Start rest timer if enabled and reveal timer UI
+        // Start rest timer if enabled and reveal timer UI (use shared manager so it persists)
         if workoutManager.restTimersEnabled, let set = currentSet {
-            timerManager.startRestTimer(duration: set.restTime)
+            workoutManager.restTimerManager.startRestTimer(duration: set.restTime)
             showingTimer = true
         }
         

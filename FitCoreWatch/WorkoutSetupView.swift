@@ -22,7 +22,7 @@ struct WorkoutSetupView: View {
     @State private var tempWeight: Double? = nil
     @State private var tempReps: Int = 12
     @State private var showEditSheet: Bool = false
-    // Track which rest row (exercise + set index) is currently active
+    // The active rest metadata is persisted in WorkoutManager; mirror it locally for SwiftUI updates
     @State private var activeRestExerciseId: UUID? = nil
     @State private var activeRestAfterSetIndex: Int? = nil
     
@@ -162,10 +162,10 @@ struct WorkoutSetupView: View {
                                 }
                                 // If rest timers are enabled, start a rest timer after completing a set
                                 if workoutManager.restTimersEnabled {
-                                    timerManager.startRestTimer(duration: AppConstants.Timer.defaultRestTime)
-                                    // Mark the rest row after this set as active
-                                    activeRestExerciseId = eId
-                                    activeRestAfterSetIndex = editingSetIndex
+                                    workoutManager.startRest(exerciseId: eId, afterSetIndex: editingSetIndex, duration: AppConstants.Timer.defaultRestTime)
+                                    // Mirror to local state for immediate UI update
+                                    activeRestExerciseId = workoutManager.activeRestExerciseId
+                                    activeRestAfterSetIndex = workoutManager.activeRestAfterSetIndex
                                 }
                             }
                             showEditSheet = false
@@ -274,10 +274,9 @@ struct WorkoutSetupView: View {
                     ExercisePreviewCard(
                         exercise: ex,
                         restOn: workoutManager.restTimersEnabled,
-                        activeRestExerciseId: activeRestExerciseId,
-                        activeRestAfterSetIndex: activeRestAfterSetIndex,
-                        restTimeText: timerManager.formattedTime,
-                        restRunning: timerManager.isRunning,
+                        activeRestExerciseId: workoutManager.activeRestExerciseId,
+                        activeRestAfterSetIndex: workoutManager.activeRestAfterSetIndex,
+                        restTimerManager: workoutManager.restTimerManager,
                         onEdit: { idx in
                             if ex.sets.indices.contains(idx) {
                                 self.showEditSet(exerciseId: ex.id, setIndex: idx, current: ex.sets[idx])
@@ -360,8 +359,7 @@ struct ExercisePreviewCard: View {
     let restOn: Bool
     let activeRestExerciseId: UUID?
     let activeRestAfterSetIndex: Int?
-    let restTimeText: String
-    let restRunning: Bool
+    @ObservedObject var restTimerManager: TimerManager
     let onEdit: (Int) -> Void
     let onDelete: () -> Void
     let onAddSet: () -> Void
@@ -430,14 +428,14 @@ struct ExercisePreviewCard: View {
 
     @ViewBuilder private func restRow(afterSetIndex idx: Int) -> some View {
         HStack(spacing: 6) {
-            let isActive = restRunning && activeRestExerciseId == exercise.id && activeRestAfterSetIndex == idx
+            let isActive = restTimerManager.isRunning && activeRestExerciseId == exercise.id && activeRestAfterSetIndex == idx
             Image(systemName: "timer")
                 .font(.system(size: 10))
                 .foregroundColor(isActive ? .blue : .secondary)
             Spacer(minLength: 6)
             // Show live countdown only for the active rest row
             if isActive {
-                Text(restTimeText)
+                Text(restTimerManager.formattedTime)
                     .monospacedDigit()
                     .font(.caption2)
                     .foregroundColor(.blue)
