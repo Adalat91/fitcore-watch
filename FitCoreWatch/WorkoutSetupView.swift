@@ -123,6 +123,10 @@ struct WorkoutSetupView: View {
             editSetActionsRow
         }
         .padding(10)
+        .onDisappear {
+            // Save changes when the sheet is dismissed (including when X is tapped)
+            handleSaveChangesOnly()
+        }
     }
     
     @ViewBuilder private var weightControlRow: some View {
@@ -535,6 +539,15 @@ struct WorkoutSetupView: View {
                 activeRestExerciseId = workoutManager.activeRestExerciseId
                 activeRestAfterSetIndex = workoutManager.activeRestAfterSetIndex
             }
+        }
+        showEditSheet = false
+    }
+    
+    private func handleSaveChangesOnly() {
+        if let eId = editingExerciseId {
+            let wDouble = tempWeight
+            workoutManager.updateSet(exerciseId: eId, setIndex: editingSetIndex, weight: wDouble, reps: tempReps)
+            // Note: NOT calling completeSetByIndex - only saving the changes
         }
         showEditSheet = false
     }
