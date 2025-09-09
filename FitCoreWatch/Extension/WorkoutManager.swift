@@ -17,6 +17,8 @@ class WorkoutManager: NSObject, ObservableObject {
     @Published var soundEnabled: Bool = true
     // A session timer that begins when the user lands on the setup screen
     @Published var sessionStartDate: Date?
+    // Exercises selected from the Exercises screen before a workout is started
+    @Published var draftExercises: [Exercise] = []
     
     // Unified source of truth for any active session start time (pre-workout or in-workout)
     var activeStartDate: Date? {
@@ -238,6 +240,18 @@ class WorkoutManager: NSObject, ObservableObject {
     }
     
     // MARK: - Exercise Management
+    
+    /// Add an exercise either to the active workout or to the pre-workout draft list
+    func addExercise(name: String, category: String) {
+        let ex = Exercise(name: name, category: category)
+        if var workout = currentWorkout {
+            workout.exercises.append(ex)
+            currentWorkout = workout
+            saveWorkout(workout)
+        } else {
+            draftExercises.append(ex)
+        }
+    }
     
     func completeSet(exerciseId: UUID, setId: UUID) {
         guard var workout = currentWorkout else { return }

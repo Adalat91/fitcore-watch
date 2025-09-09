@@ -1,10 +1,14 @@
 import SwiftUI
+import WatchKit
 
 struct ExercisesView: View {
     @ObservedObject private var catalog = ExerciseCatalog.shared
+    @EnvironmentObject var workoutManager: WorkoutManager
     @State private var query: String = ""
     @State private var favoritesOnly: Bool = false
     @State private var selectedTag: String? = nil // e.g., "Chest", "Arms", "Olympic"
+    @State private var showAddedToast = false
+    
     
     var body: some View {
         NavigationView {
@@ -78,6 +82,18 @@ struct ExercisesView: View {
                         }
                         .buttonStyle(.plain)
                     }
+                    .contentShape(Rectangle())
+                    .onTapGesture {
+                        // Add to workout/draft
+                        workoutManager.addExercise(name: item.name, category: item.displayBodyPart)
+                        // Haptic feedback
+                        WKInterfaceDevice.current().play(.click)
+                        // Fast toast
+                        showAddedToast = true
+                        DispatchQueue.main.asyncAfter(deadline: .now() + 0.8) {
+                            showAddedToast = false
+                        }
+                    }
                     .padding(.vertical, 2)
                     .listRowInsets(EdgeInsets(top: 2, leading: 8, bottom: 2, trailing: 8))
                     .listRowBackground(Color.clear)
@@ -88,6 +104,18 @@ struct ExercisesView: View {
             .background(Color.black.opacity(0.35))
             .navigationTitle("Exercises")
             .navigationBarTitleDisplayMode(.inline)
+            .overlay(alignment: .top) {
+                if showAddedToast {
+                    Text("Added")
+                        .font(.caption2)
+                        .padding(.horizontal, 10)
+                        .padding(.vertical, 6)
+                        .background(Color.white.opacity(0.15))
+                        .cornerRadius(10)
+                        .transition(.opacity)
+                        .padding(.top, 6)
+                }
+            }
         }
     }
     
