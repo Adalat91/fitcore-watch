@@ -35,6 +35,9 @@ struct WorkoutSetupView: View {
                     Button {
                         if workoutManager.isWorkoutActive {
                             workoutManager.completeWorkout()
+                        } else {
+                            // Clear any pre-workout session so timer doesn't persist across relaunch
+                            workoutManager.clearPreWorkoutSession()
                         }
                         dismiss()
                     } label: {
@@ -60,7 +63,7 @@ struct WorkoutSetupView: View {
                         Button("Cancel Workout", role: .destructive) {
                             // Only clear the pre-workout session if a real workout hasn't started
                             if !workoutManager.isWorkoutActive {
-                                workoutManager.sessionStartDate = nil
+                                workoutManager.clearPreWorkoutSession()
                             }
                             dismiss()
                         }

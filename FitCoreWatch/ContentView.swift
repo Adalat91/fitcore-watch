@@ -88,10 +88,15 @@ struct HomeView: View {
                         Color.clear.frame(width: 20, height: 20)
                     }
                     
-                    // Start or Active Workout (show active only if a real workout exists)
-                    if let activeWorkout = workoutManager.currentWorkout {
+                    // Start or Active Workout
+                    // Show Active card if a real workout exists OR a pre-workout session is in progress
+                    if let activeWorkout = workoutManager.currentWorkout ?? (workoutManager.sessionStartDate != nil ? Workout(name: "", exercises: []) : nil) {
                         Button(action: {
-                            navPath.append(HomeRoute.activeWorkout)
+                            if workoutManager.currentWorkout != nil {
+                                navPath.append(HomeRoute.activeWorkout)
+                            } else {
+                                navPath.append(HomeRoute.setup)
+                            }
                         }) {
                             HStack {
                                 VStack(alignment: .leading, spacing: 2) {
@@ -126,9 +131,7 @@ struct HomeView: View {
                         .buttonStyle(.plain)
                     } else {
                         Button(action: {
-                            if workoutManager.activeStartDate == nil {
-                                workoutManager.sessionStartDate = Date()
-                            }
+                            workoutManager.setPreWorkoutStartNow()
                             navPath.append(HomeRoute.setup)
                         }) {
                             Text("Start")
@@ -138,10 +141,10 @@ struct HomeView: View {
                                 .minimumScaleFactor(0.8)
                                 .frame(maxWidth: .infinity, alignment: .center)
                                 .padding(8)
-                                .background(Color.green.opacity(0.25))
+                                .background(Color.blue.opacity(0.25))
                                 .overlay(
                                     RoundedRectangle(cornerRadius: 12)
-                                        .stroke(Color.green, lineWidth: 1)
+                                        .stroke(Color.blue, lineWidth: 1)
                                 )
                                 .cornerRadius(12)
                         }

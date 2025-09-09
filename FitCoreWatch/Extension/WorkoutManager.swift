@@ -136,6 +136,28 @@ class WorkoutManager: NSObject, ObservableObject {
     
     // MARK: - Workout Management
     
+    /// Set the pre-workout session start to now, persist it, and reset pause state.
+    func setPreWorkoutStartNow() {
+        guard currentWorkout == nil else { return }
+        sessionStartDate = Date()
+        UserDefaults.standard.set(sessionStartDate!.timeIntervalSince1970, forKey: AppConstants.UserDefaultsKeys.sessionStartDate)
+        isSessionPaused = false
+        sessionPauseStart = nil
+        sessionPausedAccumulated = 0
+        updateUITimer()
+    }
+
+    /// Clear any pre-workout session and its persisted timestamp.
+    func clearPreWorkoutSession() {
+        guard currentWorkout == nil else { return }
+        sessionStartDate = nil
+        isSessionPaused = false
+        sessionPauseStart = nil
+        sessionPausedAccumulated = 0
+        UserDefaults.standard.removeObject(forKey: AppConstants.UserDefaultsKeys.sessionStartDate)
+        updateUITimer()
+    }
+
     func startWorkout(from template: WorkoutTemplate) {
         let workout = Workout(
             name: template.name,
