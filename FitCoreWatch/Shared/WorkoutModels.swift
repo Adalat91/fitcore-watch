@@ -5,7 +5,7 @@ import HealthKit
 
 struct Workout: Identifiable, Codable {
     let id: UUID
-    let name: String
+    var name: String
     var exercises: [Exercise]
     let startTime: Date
     var endTime: Date?
@@ -86,8 +86,9 @@ public struct Set: Identifiable, Codable {
     public var isCompleted: Bool
     public var notes: String?
     public var completedAt: Date?
+    public var setType: String?
     
-    public init(weight: Double? = nil, reps: Int, restTime: TimeInterval = 120, notes: String? = nil) {
+    public init(weight: Double? = nil, reps: Int, restTime: TimeInterval = 120, notes: String? = nil, setType: String? = nil) {
         self.id = UUID()
         self.weight = weight
         self.reps = reps
@@ -95,6 +96,7 @@ public struct Set: Identifiable, Codable {
         self.isCompleted = false
         self.notes = notes
         self.completedAt = nil
+        self.setType = setType
     }
     
     public mutating func complete() {
@@ -202,6 +204,8 @@ enum WatchMessageType: String, Codable {
     case timerUpdate = "timer_update"
     case setCompleted = "set_completed"
     case userTemplates = "user_templates"
+    case addTemplate = "add_template"
+    case addWorkout = "add_workout"
 }
 
 struct WatchMessage: Codable {

@@ -195,6 +195,8 @@ class WorkoutManager: NSObject, ObservableObject {
     /// Set the pre-workout session start to now, persist it, and reset pause state.
     func setPreWorkoutStartNow() {
         guard currentWorkout == nil else { return }
+        // Clear any existing draft exercises to ensure fresh start
+        draftExercises = []
         sessionStartDate = Date()
         UserDefaults.standard.set(sessionStartDate!.timeIntervalSince1970, forKey: AppConstants.UserDefaultsKeys.sessionStartDate)
         isSessionPaused = false
@@ -206,6 +208,8 @@ class WorkoutManager: NSObject, ObservableObject {
     /// Clear any pre-workout session and its persisted timestamp.
     func clearPreWorkoutSession() {
         guard currentWorkout == nil else { return }
+        // Clear draft exercises when clearing pre-workout session
+        draftExercises = []
         sessionStartDate = nil
         isSessionPaused = false
         sessionPauseStart = nil
@@ -258,8 +262,12 @@ class WorkoutManager: NSObject, ObservableObject {
     }
     
     func completeWorkout() {
-        guard var workout = currentWorkout else { return }
+        guard var workout = currentWorkout else { 
+            print("⚠️ No current workout to complete")
+            return 
+        }
         
+        print("🏁 Completing workout: \(workout.name)")
         workout.endTime = Date()
         workout.isActive = false
         
@@ -270,6 +278,7 @@ class WorkoutManager: NSObject, ObservableObject {
         updateHealthMetrics(for: workout)
         
         // Save completed workout
+        print("💾 Saving completed workout...")
         saveWorkout(workout)
         
         // Update stats
@@ -278,8 +287,13 @@ class WorkoutManager: NSObject, ObservableObject {
         // Notify iPhone app
         watchConnectivityManager.sendMessage(.completeWorkout, data: encodeWorkout(workout))
         
+        // Store workout for potential template/history sync before clearing
+        let completedWorkout = workout
+        
         currentWorkout = nil
         isWorkoutActive = false
+        // Clear draft exercises to prevent showing old data on next start
+        draftExercises = []
         // Clear persisted session start
         sessionStartDate = nil
         isSessionPaused = false
@@ -287,6 +301,10 @@ class WorkoutManager: NSObject, ObservableObject {
         sessionPausedAccumulated = 0
         UserDefaults.standard.removeObject(forKey: AppConstants.UserDefaultsKeys.sessionStartDate)
         updateUITimer()
+        
+        // Sync to history with the completed workout
+        print("📤 Syncing workout to history...")
+        syncWorkoutToHistory(completedWorkout)
     }
 
     // MARK: - Global Pause/Resume for session
@@ -657,6 +675,137 @@ extension WorkoutManager: WatchConnectivityDelegate {
     
     func syncStatusChanged(_ isSynced: Bool) {
         self.isSynced = isSynced
+    }
+    
+    // MARK: - Template Management
+    
+    func addTemplate(_ template: WorkoutTemplate) {
+        // Add template to local storage
+        if let templates = UserDefaults.standard.data(forKey: "userTemplates"),
+           var decodedTemplates = try? JSONDecoder().decode([WorkoutTemplate].self, from: templates) {
+            decodedTemplates.append(template)
+            if let encoded = try? JSONEncoder().encode(decodedTemplates) {
+                UserDefaults.standard.set(encoded, forKey: "userTemplates")
+            }
+        } else {
+            // First template
+            if let encoded = try? JSONEncoder().encode([template]) {
+                UserDefaults.standard.set(encoded, forKey: "userTemplates")
+            }
+        }
+        
+        // Sync with iPhone
+        syncTemplateToiPhone(template)
+    }
+    
+    func syncWorkoutToHistory(_ workout: Workout? = nil) {
+        let workoutToSync = workout ?? currentWorkout
+        guard let workoutToSync = workoutToSync else { 
+            print("⚠️ No workout to sync to history")
+            return 
+        }
+        
+        print("📋 Adding workout to local history: \(workoutToSync.name)")
+        // Add to local workouts history
+        workouts.append(workoutToSync)
+        print("💾 Saving workout to history...")
+        saveWorkout(workoutToSync)
+        
+        // Sync with iPhone
+        print("📱 Syncing workout to iPhone...")
+        syncWorkoutToiPhone(workoutToSync)
+    }
+    
+    private func syncTemplateToiPhone(_ template: WorkoutTemplate) {
+        if let templateData = try? JSONEncoder().encode(template) {
+            watchConnectivityManager.sendMessage(.addTemplate, data: templateData)
+        }
+    }
+    
+    private func syncWorkoutToiPhone(_ workout: Workout) {
+        // Format workout data for main app compatibility
+        let formattedWorkout = formatWorkoutForMainApp(workout)
+        
+        // Convert to JSON data
+        do {
+            let jsonData = try JSONSerialization.data(withJSONObject: formattedWorkout, options: [])
+            watchConnectivityManager.sendMessage(.addWorkout, data: jsonData)
+        } catch {
+            print("Error encoding workout data: \(error)")
+        }
+    }
+    
+    private func formatWorkoutForMainApp(_ workout: Workout) -> [String: Any] {
+        let endTime = Date()
+        let startTime = workout.startTime
+        let duration = endTime.timeIntervalSince(startTime)
+        
+        // Calculate total weight
+        let totalWeight = workout.exercises.reduce(0) { total, exercise in
+            exercise.sets.reduce(total) { sum, set in
+                let weight = set.weight ?? 0
+                let reps = Double(set.reps)
+                return sum + (weight * reps)
+            }
+        }
+        
+        // Format exercises for main app
+        let formattedExercises = workout.exercises.map { exercise in
+            [
+                "name": exercise.name,
+                "category": exercise.category,
+                "sets": exercise.sets.map { set in
+                    [
+                        "weight": set.weight ?? 0,
+                        "reps": set.reps,
+                        "rest": formatRestTime(set.restTime),
+                        "setType": set.setType ?? "" as Any
+                    ]
+                }
+            ]
+        }
+        
+        // Create workout data in main app format
+        let workoutData: [String: Any] = [
+            "id": workout.id.uuidString,
+            "title": workout.name,
+            "timestamp": endTime.ISO8601Format(),
+            "duration": formatDuration(duration),
+            "totalWeight": Int(totalWeight),
+            "prsCount": 0, // Watch doesn't track PRs
+            "bestSets": [] as [[String: Any]], // Watch doesn't track best sets
+            "exercises": formattedExercises,
+            "workoutId": workout.id.uuidString,
+            "source": "apple_watch", // Tag to identify watch workouts
+            "device": "watch", // Additional identifier
+            // Session tracking data
+            "sessionStartTime": startTime.ISO8601Format(),
+            "sessionEndTime": endTime.ISO8601Format(),
+            "actualDuration": Int(duration / 60), // Duration in minutes
+            "totalPausedTime": 0, // Watch doesn't track paused time
+            "sessionLogs": [] as [[String: Any]], // Watch doesn't track session logs
+            "clockedIn": startTime.ISO8601Format(),
+            "clockedOut": endTime.ISO8601Format()
+        ]
+        
+        return workoutData
+    }
+    
+    private func formatRestTime(_ restTime: Double) -> String {
+        let minutes = Int(restTime) / 60
+        let seconds = Int(restTime) % 60
+        return String(format: "%d:%02d", minutes, seconds)
+    }
+    
+    private func formatDuration(_ duration: TimeInterval) -> String {
+        let minutes = Int(duration) / 60
+        let seconds = Int(duration) % 60
+        
+        if minutes > 0 {
+            return "\(minutes) min"
+        } else {
+            return "\(seconds) sec"
+        }
     }
 }
 

@@ -32,6 +32,8 @@ struct WorkoutSetupView: View {
     @State private var selectedRestAfterSetIndex: Int? = nil
     @State private var editingActiveRest: Bool = false
     @State private var showDeleteSetConfirm: Bool = false
+    @State private var showTemplateDialog: Bool = false
+    @State private var templateName: String = ""
     
     var body: some View {
         NavigationView {
@@ -66,6 +68,9 @@ struct WorkoutSetupView: View {
         .sheet(isPresented: $showingInfo) {
             SessionInfoView()
                 .environmentObject(workoutManager)
+        }
+        .sheet(isPresented: $showTemplateDialog) {
+            templateDialog
         }
         .onAppear {
             initializeSession()
@@ -502,10 +507,13 @@ struct WorkoutSetupView: View {
     private func handleFinishAction() {
         if workoutManager.isWorkoutActive {
             workoutManager.completeWorkout()
+            // Generate auto template name with AW prefix
+            templateName = generateTemplateName()
+            showTemplateDialog = true
         } else {
             workoutManager.clearPreWorkoutSession()
+            dismiss()
         }
-        dismiss()
     }
     
     private func handleCancelAction() {
@@ -561,6 +569,185 @@ struct WorkoutSetupView: View {
             }
         }
         showRestEditor = false
+    }
+    
+    // MARK: - Template Functions
+    private func generateTemplateName() -> String {
+        let formatter = DateFormatter()
+        formatter.dateFormat = "MMM d, yyyy"
+        return "AW - Workout - \(formatter.string(from: Date()))"
+    }
+    
+    private func detectWorkoutCategory() -> String {
+        guard let workout = workoutManager.currentWorkout else { return "Custom" }
+        
+        let exerciseNames = workout.exercises.map { $0.name.lowercased() }
+        
+        // Check for upper body exercises
+        let upperBodyKeywords = ["bench", "press", "curl", "tricep", "shoulder", "chest", "bicep", "pull", "row"]
+        let hasUpperBody = exerciseNames.contains { name in
+            upperBodyKeywords.contains { keyword in name.contains(keyword) }
+        }
+        
+        // Check for lower body exercises
+        let lowerBodyKeywords = ["squat", "leg", "calf", "hamstring", "quad", "deadlift", "lunge", "glute"]
+        let hasLowerBody = exerciseNames.contains { name in
+            lowerBodyKeywords.contains { keyword in name.contains(keyword) }
+        }
+        
+        if hasUpperBody && hasLowerBody {
+            return "Full Body"
+        } else if hasUpperBody {
+            return "Upper Body"
+        } else if hasLowerBody {
+            return "Lower Body"
+        } else {
+            return "Custom"
+        }
+    }
+    
+    private func saveAsTemplate() {
+        guard let workout = workoutManager.currentWorkout else { return }
+        
+        // Format workout data for main app compatibility
+        formatWorkoutForMainApp()
+        
+        let template = WorkoutTemplate(
+            name: templateName.isEmpty ? generateTemplateName() : templateName,
+            exercises: workout.exercises,
+            category: detectWorkoutCategory(),
+            difficulty: .intermediate, // Default difficulty
+            estimatedDuration: calculateWorkoutDuration(),
+            description: nil
+        )
+        
+        workoutManager.addTemplate(template)
+        // Note: syncWorkoutToHistory() is already called in completeWorkout()
+        
+        // Close template dialog and dismiss main view
+        showTemplateDialog = false
+        dismiss()
+    }
+    
+    private func calculateWorkoutDuration() -> TimeInterval {
+        guard let workout = workoutManager.currentWorkout else { return 0 }
+        
+        let totalSets = workout.exercises.reduce(0) { $0 + $1.sets.count }
+        let averageRestTime = workout.exercises.flatMap { $0.sets }.reduce(0) { $0 + $1.restTime } / Double(workout.exercises.flatMap { $0.sets }.count)
+        
+        // Estimate: 30 seconds per set + rest time
+        return Double(totalSets) * (30 + averageRestTime)
+    }
+    
+    private func justFinish() {
+        // Format workout data for main app compatibility
+        formatWorkoutForMainApp()
+        // Note: syncWorkoutToHistory() is already called in completeWorkout()
+        
+        // Close template dialog and dismiss main view
+        showTemplateDialog = false
+        dismiss()
+    }
+    
+    private func formatWorkoutForMainApp() {
+        guard var workout = workoutManager.currentWorkout else { return }
+        
+        // Add AW prefix to workout name if not already present
+        if !workout.name.hasPrefix("AW - ") {
+            workout.name = "AW - \(workout.name)"
+        }
+        
+        // Format exercises with proper set numbering and watch-compatible data
+        var formattedExercises: [Exercise] = []
+        
+        for exercise in workout.exercises {
+            var formattedSets: [Set] = []
+            
+            for (index, set) in exercise.sets.enumerated() {
+                var formattedSet = set
+                formattedSet.setType = "\(index + 1)" // Use set numbers (1, 2, 3, etc.)
+                formattedSets.append(formattedSet)
+            }
+            
+            let formattedExercise = Exercise(
+                name: exercise.name,
+                category: exercise.category,
+                sets: formattedSets
+            )
+            formattedExercises.append(formattedExercise)
+        }
+        
+        // Update workout with formatted exercises
+        workout.exercises = formattedExercises
+        
+        // Update the workout in the manager
+        workoutManager.currentWorkout = workout
+    }
+    
+    // MARK: - Template Dialog
+    @ViewBuilder private var templateDialog: some View {
+        NavigationView {
+            VStack(spacing: 16) {
+                Text("Workout Complete!")
+                    .font(.title2)
+                    .fontWeight(.semibold)
+                    .padding(.top)
+                
+                Text("Do you want to save this as a template?")
+                    .font(.body)
+                    .multilineTextAlignment(.center)
+                    .foregroundColor(.secondary)
+                
+                VStack(alignment: .leading, spacing: 8) {
+                    Text("Template Name")
+                        .font(.headline)
+                    
+                    TextField("Template name", text: $templateName)
+                        .padding()
+                        .background(Color.gray.opacity(0.2))
+                        .cornerRadius(8)
+                        .onAppear {
+                            if templateName.isEmpty {
+                                templateName = generateTemplateName()
+                            }
+                        }
+                    
+                    Text("Category: \(detectWorkoutCategory())")
+                        .font(.caption)
+                        .foregroundColor(.secondary)
+                }
+                .padding()
+                .background(Color.gray.opacity(0.1))
+                .cornerRadius(12)
+                
+                Spacer()
+                
+                VStack(spacing: 12) {
+                    Button("Save as Template") {
+                        saveAsTemplate()
+                    }
+                    .buttonStyle(.borderedProminent)
+                    .controlSize(.large)
+                    
+                    Button("Just Finish") {
+                        justFinish()
+                    }
+                    .buttonStyle(.bordered)
+                    .controlSize(.large)
+                    
+                    Button("Cancel") {
+                        showTemplateDialog = false
+                        dismiss()
+                    }
+                    .buttonStyle(.plain)
+                    .foregroundColor(.secondary)
+                }
+                .padding(.bottom)
+            }
+            .padding()
+            .navigationTitle("Save Template")
+            .navigationBarTitleDisplayMode(.inline)
+        }
     }
 
 }

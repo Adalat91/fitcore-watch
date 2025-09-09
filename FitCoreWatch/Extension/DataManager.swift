@@ -12,11 +12,14 @@ class DataManager {
         
         if let index = workouts.firstIndex(where: { $0.id == workout.id }) {
             workouts[index] = workout
+            print("📝 Updated existing workout: \(workout.name) (ID: \(workout.id))")
         } else {
             workouts.append(workout)
+            print("💾 Saved new workout: \(workout.name) (ID: \(workout.id))")
         }
         
         saveWorkouts(workouts)
+        print("📊 Total workouts saved: \(workouts.count)")
     }
     
     func loadWorkouts(completion: @escaping ([Workout]) -> Void) {
@@ -29,13 +32,17 @@ class DataManager {
     }
     
     private func loadWorkoutsSync() -> [Workout] {
-        guard let data = userDefaults.data(forKey: workoutsKey) else { return [] }
+        guard let data = userDefaults.data(forKey: workoutsKey) else { 
+            print("📂 No saved workouts found")
+            return [] 
+        }
         
         do {
             let workouts = try JSONDecoder().decode([Workout].self, from: data)
+            print("📂 Loaded \(workouts.count) workouts from storage")
             return workouts
         } catch {
-            print("Error loading workouts: \(error)")
+            print("❌ Error loading workouts: \(error)")
             return []
         }
     }
