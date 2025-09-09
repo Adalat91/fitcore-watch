@@ -7,6 +7,9 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		4429F2E62E6FC0E5002AE171 /* exercises.txt in Resources */ = {isa = PBXBuildFile; fileRef = 4429F2E52E6FC0E5002AE171 /* exercises.txt */; };
+		4429F2E72E6FC0E5002AE171 /* ExerciseCatalog.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4429F2E42E6FC0E5002AE171 /* ExerciseCatalog.swift */; };
+		4429F2E92E6FC9B9002AE171 /* ExercisesView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4429F2E82E6FC9B9002AE171 /* ExercisesView.swift */; };
 		A1234567890ABCDEF1234567 /* FitCoreWatchApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1234567890ABCDEF1234566 /* FitCoreWatchApp.swift */; };
 		A1234567890ABCDEF1234569 /* ContentView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1234567890ABCDEF1234568 /* ContentView.swift */; };
 		A1234567890ABCDEF123456B /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = A1234567890ABCDEF123456A /* Assets.xcassets */; };
@@ -23,10 +26,13 @@
 		A1234567890ABCDEF1234582 /* Constants.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1234567890ABCDEF1234581 /* Constants.swift */; };
 		A1234567890ABCDEF1234584 /* Color+Extensions.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1234567890ABCDEF1234583 /* Color+Extensions.swift */; };
 		A1234567890ABCDEF1234586 /* Date+Extensions.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1234567890ABCDEF1234585 /* Date+Extensions.swift */; };
- 		A1234567890ABCDEF1234596 /* WorkoutSetupView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1234567890ABCDEF1234595 /* WorkoutSetupView.swift */; };
+		A1234567890ABCDEF1234596 /* WorkoutSetupView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1234567890ABCDEF1234595 /* WorkoutSetupView.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
+		4429F2E42E6FC0E5002AE171 /* ExerciseCatalog.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ExerciseCatalog.swift; sourceTree = "<group>"; };
+		4429F2E52E6FC0E5002AE171 /* exercises.txt */ = {isa = PBXFileReference; lastKnownFileType = text; path = exercises.txt; sourceTree = "<group>"; };
+		4429F2E82E6FC9B9002AE171 /* ExercisesView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = ExercisesView.swift; path = FitCoreWatch/ExercisesView.swift; sourceTree = "<group>"; };
 		A1234567890ABCDEF1234563 /* FitCoreWatch.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = FitCoreWatch.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		A1234567890ABCDEF1234566 /* FitCoreWatchApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FitCoreWatchApp.swift; sourceTree = "<group>"; };
 		A1234567890ABCDEF1234568 /* ContentView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ContentView.swift; sourceTree = "<group>"; };
@@ -44,7 +50,7 @@
 		A1234567890ABCDEF1234581 /* Constants.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Constants.swift; sourceTree = "<group>"; };
 		A1234567890ABCDEF1234583 /* Color+Extensions.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "Color+Extensions.swift"; sourceTree = "<group>"; };
 		A1234567890ABCDEF1234585 /* Date+Extensions.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "Date+Extensions.swift"; sourceTree = "<group>"; };
- 		A1234567890ABCDEF1234595 /* WorkoutSetupView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WorkoutSetupView.swift; sourceTree = "<group>"; };
+		A1234567890ABCDEF1234595 /* WorkoutSetupView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WorkoutSetupView.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -61,6 +67,7 @@
 		A1234567890ABCDEF123455A = {
 			isa = PBXGroup;
 			children = (
+				4429F2E82E6FC9B9002AE171 /* ExercisesView.swift */,
 				A1234567890ABCDEF1234565 /* FitCoreWatch */,
 				A1234567890ABCDEF1234564 /* Products */,
 			);
@@ -114,6 +121,8 @@
 		A1234567890ABCDEF1234588 /* Shared */ = {
 			isa = PBXGroup;
 			children = (
+				4429F2E42E6FC0E5002AE171 /* ExerciseCatalog.swift */,
+				4429F2E52E6FC0E5002AE171 /* exercises.txt */,
 				A1234567890ABCDEF123457F /* WorkoutModels.swift */,
 				A1234567890ABCDEF1234581 /* Constants.swift */,
 				A1234567890ABCDEF1234589 /* Extensions */,
@@ -189,6 +198,7 @@
 			buildActionMask = 2147483647;
 			files = (
 				A1234567890ABCDEF123456E /* Preview Assets.xcassets in Resources */,
+				4429F2E62E6FC0E5002AE171 /* exercises.txt in Resources */,
 				A1234567890ABCDEF123456B /* Assets.xcassets in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
@@ -200,9 +210,11 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				4429F2E92E6FC9B9002AE171 /* ExercisesView.swift in Sources */,
 				A1234567890ABCDEF1234569 /* ContentView.swift in Sources */,
 				A1234567890ABCDEF1234567 /* FitCoreWatchApp.swift in Sources */,
 				A1234567890ABCDEF1234570 /* WorkoutView.swift in Sources */,
+				4429F2E72E6FC0E5002AE171 /* ExerciseCatalog.swift in Sources */,
 				A1234567890ABCDEF1234596 /* WorkoutSetupView.swift in Sources */,
 				A1234567890ABCDEF1234572 /* TimerView.swift in Sources */,
 				A1234567890ABCDEF1234574 /* ExerciseView.swift in Sources */,

@@ -153,9 +153,7 @@ struct WorkoutSetupView: View {
             .navigationTitle(workoutManager.formattedActiveElapsed)
             .navigationBarTitleDisplayMode(.inline)
             .sheet(isPresented: $showingAddExercises) {
-                // Reuse templates for adding quickly on watch
-                TemplatesView()
-                    .environmentObject(workoutManager)
+                ExercisesView()
             }
             .sheet(isPresented: $showingInfo) {
                 SessionInfoView()
@@ -238,6 +236,8 @@ struct SessionInfoView: View {
     }
     private var elapsedText: String { "" }
 }
+
+// Fallback removed: using the real ExercisesView from FitCoreWatch/ExercisesView.swift
 
 #Preview {
     WorkoutSetupView()
