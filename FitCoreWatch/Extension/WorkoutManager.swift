@@ -353,6 +353,17 @@ class WorkoutManager: NSObject, ObservableObject {
             }
         }
     }
+
+    /// Remove an exercise by id from either the active workout or the draft list.
+    func removeExercise(exerciseId: UUID) {
+        if var workout = currentWorkout {
+            workout.exercises.removeAll { $0.id == exerciseId }
+            currentWorkout = workout
+            saveWorkout(workout)
+        } else {
+            draftExercises.removeAll { $0.id == exerciseId }
+        }
+    }
     
     // MARK: - Health Kit
     

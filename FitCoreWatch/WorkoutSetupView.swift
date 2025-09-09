@@ -263,6 +263,9 @@ struct WorkoutSetupView: View {
                             if ex.sets.indices.contains(idx) {
                                 self.showEditSet(exerciseId: ex.id, setIndex: idx, current: ex.sets[idx])
                             }
+                        },
+                        onDelete: {
+                            workoutManager.removeExercise(exerciseId: ex.id)
                         }
                     )
                 }
@@ -354,9 +357,11 @@ struct ExercisePreviewCard: View {
     let exercise: Exercise
     let restOn: Bool
     let onEdit: (Int) -> Void
+    let onDelete: () -> Void
+    @State private var showDeleteConfirm = false
     
     var body: some View {
-        VStack(alignment: .leading, spacing: 6) {
+        VStack(alignment: .leading, spacing: 4) {
             nameRow
             setsList
         }
@@ -364,18 +369,25 @@ struct ExercisePreviewCard: View {
 
     // MARK: - Subcomponents
     private var nameRow: some View {
-        HStack {
+        HStack(spacing: 4) {
             Text(exercise.name)
-                .font(.caption)
-                .fontWeight(.semibold)
-                .lineLimit(1)
-            Spacer()
-            Image(systemName: "ellipsis")
                 .font(.caption2)
+                .fontWeight(.semibold)
+                .foregroundColor(.blue)
+                .lineLimit(1)
+                .minimumScaleFactor(0.7)
+            Spacer(minLength: 4)
+            Button(action: { showDeleteConfirm = true }) {
+                Image(systemName: "ellipsis")
+                    .font(.system(size: 10, weight: .regular))
+            }
+            .buttonStyle(.plain)
         }
-        .padding(8)
-        .background(Color.white.opacity(0.08))
-        .cornerRadius(10)
+        .padding(.vertical, 2)
+        .confirmationDialog("Exercise Options", isPresented: $showDeleteConfirm, titleVisibility: .visible) {
+            Button("Delete Exercise", role: .destructive) { onDelete() }
+            Button("Cancel", role: .cancel) { }
+        }
     }
 
     @ViewBuilder private var setsList: some View {
@@ -388,36 +400,34 @@ struct ExercisePreviewCard: View {
     @ViewBuilder private func setRow(idx: Int) -> some View {
         let set = exercise.sets[idx]
         Button { onEdit(idx) } label: {
-            HStack {
+            HStack(spacing: 6) {
                 Text("\(idx + 1)")
                     .font(.caption2)
-                Spacer()
+                Spacer(minLength: 6)
                 Text("\(weightString(set.weight)) lb×\(set.reps)")
                     .font(.caption2)
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.8)
                 if set.isCompleted {
-                    Image(systemName: "checkmark.circle.fill")
-                        .font(.caption2)
+                    Image(systemName: "checkmark.circle")
+                        .font(.system(size: 10))
                         .foregroundColor(.green)
                 }
             }
-            .padding(8)
-            .background(set.isCompleted ? Color.green.opacity(0.18) : Color.white.opacity(0.08))
-            .cornerRadius(10)
+            .padding(.vertical, 2)
         }
         .buttonStyle(.plain)
     }
 
     @ViewBuilder private func restRow() -> some View {
-        HStack {
+        HStack(spacing: 6) {
             Image(systemName: "timer")
-                .font(.caption2)
-            Spacer()
+                .font(.system(size: 10))
+            Spacer(minLength: 6)
             Text("2:00")
                 .font(.caption2)
         }
-        .padding(8)
-        .background(Color.white.opacity(0.08))
-        .cornerRadius(10)
+        .padding(.vertical, 2)
     }
 }
 
