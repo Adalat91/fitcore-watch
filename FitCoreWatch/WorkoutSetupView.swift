@@ -432,7 +432,6 @@ struct ExercisePreviewCard: View {
             Image(systemName: "timer")
                 .font(.system(size: 10))
                 .foregroundColor(isActive ? .blue : .secondary)
-            Spacer(minLength: 6)
             // Show live countdown only for the active rest row
             if isActive {
                 Text(restTimerManager.formattedTime)
@@ -444,6 +443,7 @@ struct ExercisePreviewCard: View {
                     .font(.caption2)
                     .foregroundColor(.secondary)
             }
+            Spacer(minLength: 6)
         }
         .padding(.vertical, 2)
     }
