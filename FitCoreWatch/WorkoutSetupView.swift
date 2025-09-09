@@ -266,31 +266,14 @@ struct WorkoutSetupView: View {
                         },
                         onDelete: {
                             workoutManager.removeExercise(exerciseId: ex.id)
+                        },
+                        onAddSet: {
+                            workoutManager.addSetToExercise(exerciseId: ex.id, weight: nil, reps: 12)
                         }
                     )
                 }
             }
-            
-            // Add Set button (adds to last exercise if exists)
-            if let targetExercise = exerciseList.last {
-                Button {
-                    workoutManager.addSetToExercise(exerciseId: targetExercise.id, weight: nil, reps: 12)
-                } label: {
-                    HStack {
-                        Text("Add Set")
-                            .font(.subheadline)
-                            .fontWeight(.semibold)
-                        Spacer()
-                        Image(systemName: "plus")
-                            .font(.body)
-                    }
-                    .padding()
-                    .frame(maxWidth: .infinity)
-                    .background(Color.gray.opacity(0.2))
-                    .cornerRadius(12)
-                }
-                .buttonStyle(.plain)
-            }
+
 
             Button(action: { showingAddExercises = true }) {
                 HStack {
@@ -358,12 +341,14 @@ struct ExercisePreviewCard: View {
     let restOn: Bool
     let onEdit: (Int) -> Void
     let onDelete: () -> Void
+    let onAddSet: () -> Void
     @State private var showDeleteConfirm = false
     
     var body: some View {
         VStack(alignment: .leading, spacing: 4) {
             nameRow
             setsList
+            addSetButton
         }
     }
 
@@ -428,6 +413,25 @@ struct ExercisePreviewCard: View {
                 .font(.caption2)
         }
         .padding(.vertical, 2)
+    }
+
+    private var addSetButton: some View {
+        Button(action: onAddSet) {
+            HStack {
+                Text("Add Set")
+                    .font(.caption2)
+                    .fontWeight(.semibold)
+                Spacer()
+                Image(systemName: "plus")
+                    .font(.system(size: 12))
+            }
+            .padding(8)
+            .frame(maxWidth: .infinity)
+            .background(Color.gray.opacity(0.2))
+            .cornerRadius(10)
+        }
+        .buttonStyle(.plain)
+        .padding(.top, 2)
     }
 }
 
