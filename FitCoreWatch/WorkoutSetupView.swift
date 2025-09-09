@@ -25,6 +25,12 @@ struct WorkoutSetupView: View {
     // The active rest metadata is persisted in WorkoutManager; mirror it locally for SwiftUI updates
     @State private var activeRestExerciseId: UUID? = nil
     @State private var activeRestAfterSetIndex: Int? = nil
+    // Rest editor sheet
+    @State private var showRestEditor: Bool = false
+    @State private var tempRestSeconds: Int = Int(AppConstants.Timer.defaultRestTime)
+    @State private var selectedRestExerciseId: UUID? = nil
+    @State private var selectedRestAfterSetIndex: Int? = nil
+    @State private var editingActiveRest: Bool = false
     
     var body: some View {
         NavigationView {
@@ -180,6 +186,52 @@ struct WorkoutSetupView: View {
                 }
                 .padding(10)
             }
+            // Rest editor sheet
+            .sheet(isPresented: $showRestEditor) {
+                VStack(spacing: 10) {
+                    Text("Edit Rest")
+                        .font(.subheadline)
+                        .fontWeight(.semibold)
+                    HStack(spacing: 12) {
+                        Button { tempRestSeconds = max(15, tempRestSeconds - 15) } label: { Image(systemName: "minus") }
+                            .buttonStyle(.bordered)
+                            .controlSize(.mini)
+                        Text(formattedSeconds(tempRestSeconds))
+                            .font(.title3)
+                            .monospacedDigit()
+                        Button { tempRestSeconds = min(600, tempRestSeconds + 15) } label: { Image(systemName: "plus") }
+                            .buttonStyle(.bordered)
+                            .controlSize(.mini)
+                    }
+                    HStack(spacing: 8) {
+                        Button("Reset") { tempRestSeconds = Int(AppConstants.Timer.defaultRestTime) }
+                            .buttonStyle(.bordered)
+                            .controlSize(.small)
+                        Button("Skip", role: .destructive) {
+                            workoutManager.restTimerManager.skipTimer()
+                            showRestEditor = false
+                        }
+                        .buttonStyle(.bordered)
+                        .controlSize(.small)
+                        Spacer()
+                        Button("Save") {
+                            if let eId = selectedRestExerciseId, let idx = selectedRestAfterSetIndex {
+                                if editingActiveRest {
+                                    // Restart active rest with new duration
+                                    workoutManager.startRest(exerciseId: eId, afterSetIndex: idx, duration: TimeInterval(tempRestSeconds))
+                                } else {
+                                    // Update per-set rest time without starting timer
+                                    workoutManager.updateSetRestTime(exerciseId: eId, setIndex: idx, restSeconds: tempRestSeconds)
+                                }
+                            }
+                            showRestEditor = false
+                        }
+                        .buttonStyle(.borderedProminent)
+                        .controlSize(.small)
+                    }
+                }
+                .padding(10)
+            }
             .sheet(isPresented: $showingInfo) {
                 SessionInfoView()
                     .environmentObject(workoutManager)
@@ -277,6 +329,20 @@ struct WorkoutSetupView: View {
                         activeRestExerciseId: workoutManager.activeRestExerciseId,
                         activeRestAfterSetIndex: workoutManager.activeRestAfterSetIndex,
                         restTimerManager: workoutManager.restTimerManager,
+                        onTapRest: { exerciseId, afterIdx, isActive, currentRestSeconds in
+                            selectedRestExerciseId = exerciseId
+                            selectedRestAfterSetIndex = afterIdx
+                            editingActiveRest = isActive
+                            if isActive {
+                                // Use remaining time for active timer
+                                let remaining = Int(workoutManager.restTimerManager.timeRemaining)
+                                tempRestSeconds = max(15, remaining > 0 ? remaining : currentRestSeconds)
+                            } else {
+                                // Use this set's configured rest time
+                                tempRestSeconds = max(15, currentRestSeconds)
+                            }
+                            showRestEditor = true
+                        },
                         onEdit: { idx in
                             if ex.sets.indices.contains(idx) {
                                 self.showEditSet(exerciseId: ex.id, setIndex: idx, current: ex.sets[idx])
@@ -351,6 +417,14 @@ struct WorkoutSetupView: View {
         if v.truncatingRemainder(dividingBy: 1) == 0 { return String(Int(v)) }
         return String(format: "%.1f", v)
     }
+
+}
+
+// Format seconds as m:ss for use across this file
+func formattedSeconds(_ seconds: Int) -> String {
+    let m = seconds / 60
+    let s = seconds % 60
+    return String(format: "%d:%02d", m, s)
 }
 
 // MARK: - Subviews
@@ -360,6 +434,7 @@ struct ExercisePreviewCard: View {
     let activeRestExerciseId: UUID?
     let activeRestAfterSetIndex: Int?
     @ObservedObject var restTimerManager: TimerManager
+    let onTapRest: (_ exerciseId: UUID, _ afterSetIndex: Int, _ isActive: Bool, _ currentRestSeconds: Int) -> Void
     let onEdit: (Int) -> Void
     let onDelete: () -> Void
     let onAddSet: () -> Void
@@ -439,13 +514,21 @@ struct ExercisePreviewCard: View {
                     .font(.caption2)
                     .foregroundColor(.blue)
             } else {
-                Text("2:00")
+                let defaultSeconds = Int(AppConstants.Timer.defaultRestTime)
+                let currentSeconds = exercise.sets.indices.contains(idx) ? Int(exercise.sets[idx].restTime) : defaultSeconds
+                Text(formattedSeconds(currentSeconds))
                     .font(.caption2)
                     .foregroundColor(.secondary)
             }
             Spacer(minLength: 6)
         }
         .padding(.vertical, 2)
+        .contentShape(Rectangle())
+        .onTapGesture {
+            let isActive = restTimerManager.isRunning && activeRestExerciseId == exercise.id && activeRestAfterSetIndex == idx
+            let currentSeconds = exercise.sets.indices.contains(idx) ? Int(exercise.sets[idx].restTime) : Int(AppConstants.Timer.defaultRestTime)
+            onTapRest(exercise.id, idx, isActive, currentSeconds)
+        }
     }
 
     private var addSetButton: some View {
