@@ -86,6 +86,8 @@ public struct Set: Identifiable, Codable {
     public var isCompleted: Bool
     public var notes: String?
     public var completedAt: Date?
+    // Optional set type label (e.g., "W" for Warmup, "D" for Drop, "F" for Failure)
+    public var setType: String?
     
     public init(weight: Double? = nil, reps: Int, restTime: TimeInterval = 120, notes: String? = nil) {
         self.id = UUID()
@@ -95,6 +97,7 @@ public struct Set: Identifiable, Codable {
         self.isCompleted = false
         self.notes = notes
         self.completedAt = nil
+        self.setType = nil
     }
     
     public mutating func complete() {
@@ -202,6 +205,9 @@ enum WatchMessageType: String, Codable {
     case timerUpdate = "timer_update"
     case setCompleted = "set_completed"
     case userTemplates = "user_templates"
+    // Added to support sending new templates and completed workouts to iPhone
+    case addTemplate = "add_template"
+    case addWorkout = "add_workout"
 }
 
 struct WatchMessage: Codable {
