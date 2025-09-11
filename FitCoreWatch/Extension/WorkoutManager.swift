@@ -195,6 +195,8 @@ class WorkoutManager: NSObject, ObservableObject {
     /// Set the pre-workout session start to now, persist it, and reset pause state.
     func setPreWorkoutStartNow() {
         guard currentWorkout == nil else { return }
+        // Start fresh: clear any lingering draft exercises
+        draftExercises = []
         sessionStartDate = Date()
         UserDefaults.standard.set(sessionStartDate!.timeIntervalSince1970, forKey: AppConstants.UserDefaultsKeys.sessionStartDate)
         isSessionPaused = false
@@ -206,6 +208,8 @@ class WorkoutManager: NSObject, ObservableObject {
     /// Clear any pre-workout session and its persisted timestamp.
     func clearPreWorkoutSession() {
         guard currentWorkout == nil else { return }
+        // Also clear any draft exercises to ensure the next start is clean
+        draftExercises = []
         sessionStartDate = nil
         isSessionPaused = false
         sessionPauseStart = nil
@@ -285,8 +289,33 @@ class WorkoutManager: NSObject, ObservableObject {
         isSessionPaused = false
         sessionPauseStart = nil
         sessionPausedAccumulated = 0
+        // Ensure no stale draft exercises leak into the next session
+        draftExercises = []
         UserDefaults.standard.removeObject(forKey: AppConstants.UserDefaultsKeys.sessionStartDate)
         updateUITimer()
+    }
+
+    /// Cancel the current workout without saving it to history.
+    /// Also clears draft/pre-workout state so the next start is clean.
+    func cancelWorkout() {
+        // If an actual workout is in progress, end HealthKit session
+        if isWorkoutActive { healthKitManager.endWorkoutSession() }
+
+        // Discard the active workout and any drafts
+        currentWorkout = nil
+        isWorkoutActive = false
+        draftExercises = []
+
+        // Reset timers/state
+        sessionStartDate = nil
+        isSessionPaused = false
+        sessionPauseStart = nil
+        sessionPausedAccumulated = 0
+        UserDefaults.standard.removeObject(forKey: AppConstants.UserDefaultsKeys.sessionStartDate)
+        updateUITimer()
+
+        // Optionally notify iPhone that there is no current workout
+        watchConnectivityManager.sendMessage(.updateWorkout, data: nil)
     }
 
     // MARK: - Global Pause/Resume for session
